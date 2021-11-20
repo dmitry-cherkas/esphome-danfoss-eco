@@ -57,18 +57,26 @@ void Anova::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_
       break;
     }
     case ESP_GATTC_SEARCH_CMPL_EVT: {
-      auto chr = this->parent_->get_characteristic(ANOVA_SERVICE_UUID, ANOVA_CHARACTERISTIC_UUID);
-      if (chr == nullptr) {
-        ESP_LOGW(TAG, "[%s] No control service found at device, not an Anova..?", this->get_name().c_str());
-        ESP_LOGW(TAG, "[%s] Note, this component does not currently support Anova Nano.", this->get_name().c_str());
+      auto pinChr = this->parent_->get_characteristic(ECO2_SERVICE_SETTINGS, ECO2_CHARACTERISTIC_PIN);
+      if (pinChr == nullptr) {
+        ESP_LOGW(TAG, "[%s] No settings service found at device, not a Danfoss Eco?", this->get_name().c_str());
         break;
       }
-      this->char_handle_ = chr->handle;
 
-      auto status = esp_ble_gattc_register_for_notify(this->parent_->gattc_if, this->parent_->remote_bda, chr->handle);
-      if (status) {
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_register_for_notify failed, status=%d", this->get_name().c_str(), status);
+      auto pinStatus =
+          esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, pinChr->handle, sizeof(eco2Pin), eco2Pin, ESP_GATT_WRITE_TYPE_RSP, ESP_GATT_AUTH_REQ_NONE);
+      if (pinStatus)
+        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), pinStatus);
+      else
+        ESP_LOGI(TAG, "[%s] esp_ble_gattc_write_char PIN, status=%d", this->parent_->address_str().c_str(), pinStatus);
+
+      auto nameChr = this->parent_->get_characteristic(ECO2_SERVICE_SETTINGS, ECO2_CHARACTERISTIC_NAME);
+      if (nameChr == nullptr) {
+        ESP_LOGW(TAG, "[%s] No name characteristic found at device, not a Danfoss Eco?", this->get_name().c_str());
+        break;
       }
+
+      this->char_handle_ = nameChr->handle;
       break;
     }
     case ESP_GATTC_REG_FOR_NOTIFY_EVT: {

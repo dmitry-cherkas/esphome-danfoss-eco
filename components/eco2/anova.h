@@ -17,8 +17,11 @@ namespace esphome
 
     namespace espbt = esphome::esp32_ble_tracker;
 
-    static const uint16_t ANOVA_SERVICE_UUID = 0xFFE0;
-    static const uint16_t ANOVA_CHARACTERISTIC_UUID = 0xFFE1;
+    static auto ECO2_SERVICE_SETTINGS = esp32_ble_tracker::ESPBTUUID::from_raw("10020000-2749-0001-0000-00805f9b042f");
+    static auto ECO2_CHARACTERISTIC_PIN = esp32_ble_tracker::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");
+    static auto ECO2_CHARACTERISTIC_NAME = esp32_ble_tracker::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");
+
+    static uint8_t eco2Pin[] = {0x30, 0x30, 0x30, 0x30};
 
     class Anova : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {
