@@ -50,7 +50,6 @@ namespace esphome
       void control(const climate::ClimateCall &call) override;
       uint16_t char_handle_;
       uint8_t current_request_;
-      bool fahrenheit_;
       uint8_t *secret_;
     };
 

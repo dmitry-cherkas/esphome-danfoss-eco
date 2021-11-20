@@ -14,7 +14,7 @@ namespace esphome
 
     using namespace esphome::climate;
 
-    void DanfossEco2::dump_config() { LOG_CLIMATE("", "DanfossEco2 BLE Cooker", this); }
+    void DanfossEco2::dump_config() { LOG_CLIMATE("", "Danfoss Eco eTRV", this); }
 
     void DanfossEco2::setup()
     {
@@ -129,8 +129,6 @@ namespace esphome
         }
         if (this->codec_->has_unit())
         {
-          this->fahrenheit_ = (this->codec_->unit_ == 'f');
-          ESP_LOGD(TAG, "DanfossEco2 units is %s", this->fahrenheit_ ? "fahrenheit" : "celcius");
           this->current_request_++;
         }
         this->publish_state();
@@ -169,12 +167,7 @@ namespace esphome
 
     void DanfossEco2::set_secret_key(const char *str)
     {
-      this->fahrenheit_ = !strncmp(str, "f", 1);
-      ESP_LOGW(TAG, "set_secret_key: %s", str);
       this->secret_ = this->codec_->bytesFromHexStr(str, 32);
-
-      std::string s = hexencode(this->secret_, 16);
-      ESP_LOGW(TAG, "hex: %s", s.c_str());
     }
 
     void DanfossEco2::update()
@@ -185,8 +178,7 @@ namespace esphome
       if (this->current_request_ < 2)
       {
         auto pkt = this->codec_->get_read_device_status_request();
-        if (this->current_request_ == 0)
-          this->codec_->get_set_unit_request(this->fahrenheit_ ? 'f' : 'c');
+
         auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, this->char_handle_,
                                                pkt->length, pkt->data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
         if (status)
