@@ -4,7 +4,7 @@
 #include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/climate/climate.h"
-#include "anova_base.h"
+#include "eco2_base.h"
 
 #ifdef USE_ESP32
 
