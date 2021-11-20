@@ -3,11 +3,6 @@ import esphome.config_validation as cv
 from esphome.components import climate, ble_client
 from esphome.const import CONF_ID, CONF_UNIT_OF_MEASUREMENT
 
-UNITS = {
-    "f": "f",
-    "c": "c",
-}
-
 CODEOWNERS = ["@buxtronix"]
 DEPENDENCIES = ["ble_client"]
 
@@ -20,7 +15,7 @@ CONFIG_SCHEMA = (
     climate.CLIMATE_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(DanfossEco),
-            cv.Required(CONF_UNIT_OF_MEASUREMENT): cv.enum(UNITS),
+            cv.Required(CONF_UNIT_OF_MEASUREMENT): cv.string,
         }
     )
     .extend(ble_client.BLE_CLIENT_SCHEMA)

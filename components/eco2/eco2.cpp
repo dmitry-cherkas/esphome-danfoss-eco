@@ -1,5 +1,7 @@
 #include "eco2.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
+#include <xxtea-lib.h>
 
 #ifdef USE_ESP32
 
@@ -18,6 +20,15 @@ namespace esphome
     {
       this->codec_ = make_unique<AnovaCodec>();
       this->current_request_ = 0;
+
+      auto status = xxtea_setup_key(this->secret_, sizeof(this->secret_));
+      if (status != XXTEA_STATUS_SUCCESS)
+      {
+        ESP_LOGW(TAG, "xxtea_setup_key failed, status: %d", status);
+        return;
+      } else {
+        ESP_LOGI(TAG, "xxtea_setup_key OK");
+      }
     }
 
     void DanfossEco2::loop() {}
@@ -156,7 +167,15 @@ namespace esphome
       }
     }
 
-    void DanfossEco2::set_unit_of_measurement(const char *unit) { this->fahrenheit_ = !strncmp(unit, "f", 1); }
+    void DanfossEco2::set_unit_of_measurement(const char *str)
+    {
+      this->fahrenheit_ = !strncmp(str, "f", 1);
+      ESP_LOGW(TAG, "set_unit_of_measurement: %s", str);
+      this->secret_ = this->codec_->bytesFromHexStr(str, 32);
+
+      std::string s = hexencode(this->secret_, 16);
+      ESP_LOGW(TAG, "hex: %s", s.c_str());
+    }
 
     void DanfossEco2::update()
     {

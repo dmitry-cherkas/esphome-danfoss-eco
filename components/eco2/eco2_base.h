@@ -52,6 +52,7 @@ namespace esphome
 
       AnovaPacket *get_start_request();
       AnovaPacket *get_stop_request();
+      uint8_t* bytesFromHexStr(const char* value, size_t len);
 
       void decode(const uint8_t *data, uint16_t length);
       bool has_target_temp() { return this->has_target_temp_; }

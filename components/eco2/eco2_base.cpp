@@ -160,5 +160,14 @@ namespace esphome
       }
     }
 
+    uint8_t *AnovaCodec::bytesFromHexStr(const char *value, size_t str_len)
+    {
+      size_t len = str_len / 2;
+      uint8_t *buff = (uint8_t *)malloc(sizeof(uint8_t) * len);
+      for (size_t i = 0; i < len; i++)
+        buff[i] = (parse_hex(value[i * 2]).value() << 4) | parse_hex(value[i * 2 + 1]).value();
+
+      return buff;
+    }
   } // namespace eco2
 } // namespace esphome
