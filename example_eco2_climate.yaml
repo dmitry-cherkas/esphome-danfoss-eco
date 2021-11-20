@@ -1,0 +1,35 @@
+esphome:
+  name: eco2-room
+  platform: ESP32
+  board: esp32dev
+  libraries:
+    - xxtea-iot-crypt@2.0.1
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: ""
+
+ota:
+  password: ""
+
+wifi:
+  ssid: "ssid"
+  password: "pass"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Eco2-Room Fallback Hotspot"
+    password: "jgwPhdtTWG3m"
+
+captive_portal:
+
+esp32_ble_tracker:
+
+sensor:
+  # RSSI based on MAC address
+  - platform: ble_rssi
+    mac_address: 00:04:2f:40:57:b0
+    name: "Room eTRV RSSI value"
