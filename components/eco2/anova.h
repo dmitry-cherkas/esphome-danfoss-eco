@@ -17,9 +17,9 @@ namespace esphome
 
     namespace espbt = esphome::esp32_ble_tracker;
 
-    static auto ECO2_SERVICE_SETTINGS = esp32_ble_tracker::ESPBTUUID::from_raw("10020000-2749-0001-0000-00805f9b042f");
-    static auto ECO2_CHARACTERISTIC_PIN = esp32_ble_tracker::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");
-    static auto ECO2_CHARACTERISTIC_NAME = esp32_ble_tracker::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");
+    static auto ECO2_SERVICE_SETTINGS = espbt::ESPBTUUID::from_raw("10020000-2749-0001-0000-00805f9b042f");
+    static auto ECO2_CHARACTERISTIC_PIN = espbt::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");
+    static auto ECO2_CHARACTERISTIC_NAME = espbt::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");
 
     static uint8_t eco2Pin[] = {0x30, 0x30, 0x30, 0x30};
 
