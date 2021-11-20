@@ -3,8 +3,10 @@ import esphome.config_validation as cv
 from esphome.components import climate, ble_client
 from esphome.const import CONF_ID, CONF_UNIT_OF_MEASUREMENT
 
-CODEOWNERS = ["@buxtronix"]
+CODEOWNERS = ["@dmitry-cherkas"]
 DEPENDENCIES = ["ble_client"]
+
+CONF_SECRET_KEY = 'secret_key'
 
 eco_ns = cg.esphome_ns.namespace("eco2")
 DanfossEco = eco_ns.class_(
@@ -15,7 +17,7 @@ CONFIG_SCHEMA = (
     climate.CLIMATE_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(DanfossEco),
-            cv.Required(CONF_UNIT_OF_MEASUREMENT): cv.string,
+            cv.Required(CONF_SECRET_KEY): cv.string,
         }
     )
     .extend(ble_client.BLE_CLIENT_SCHEMA)
@@ -28,4 +30,4 @@ async def to_code(config):
     await cg.register_component(var, config)
     await climate.register_climate(var, config)
     await ble_client.register_ble_node(var, config)
-    cg.add(var.set_unit_of_measurement(config[CONF_UNIT_OF_MEASUREMENT]))
+    cg.add(var.set_secret_key(config[CONF_SECRET_KEY]))

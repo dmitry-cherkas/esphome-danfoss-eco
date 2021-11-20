@@ -167,10 +167,10 @@ namespace esphome
       }
     }
 
-    void DanfossEco2::set_unit_of_measurement(const char *str)
+    void DanfossEco2::set_secret_key(const char *str)
     {
       this->fahrenheit_ = !strncmp(str, "f", 1);
-      ESP_LOGW(TAG, "set_unit_of_measurement: %s", str);
+      ESP_LOGW(TAG, "set_secret_key: %s", str);
       this->secret_ = this->codec_->bytesFromHexStr(str, 32);
 
       std::string s = hexencode(this->secret_, 16);

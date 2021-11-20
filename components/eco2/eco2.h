@@ -43,7 +43,7 @@ namespace esphome
         traits.set_visual_temperature_step(0.1);
         return traits;
       }
-      void set_unit_of_measurement(const char *);
+      void set_secret_key(const char *);
 
     protected:
       std::unique_ptr<AnovaCodec> codec_;

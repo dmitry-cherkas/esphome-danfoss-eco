@@ -39,4 +39,4 @@ climate:
   - platform: eco2
     name: "My Room eTRV"
     ble_client_id: room_eco2
-    unit_of_measurement: c
+    secret_key: deadbeefcafebabedeadbeefcafebabe
