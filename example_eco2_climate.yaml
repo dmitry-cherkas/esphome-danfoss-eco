@@ -26,10 +26,17 @@ wifi:
 
 captive_portal:
 
+external_components:
+  - source: components
+
 esp32_ble_tracker:
 
-sensor:
-  # RSSI based on MAC address
-  - platform: ble_rssi
-    mac_address: 00:04:2f:40:57:b0
-    name: "Room eTRV RSSI value"
+ble_client:
+  - mac_address: 00:04:2f:40:57:b0
+    id: room_eco2
+
+climate:
+  - platform: eco2
+    name: "My Room eTRV"
+    ble_client_id: room_eco2
+    unit_of_measurement: c
