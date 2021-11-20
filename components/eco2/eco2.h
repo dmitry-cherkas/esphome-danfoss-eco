@@ -47,8 +47,11 @@ namespace esphome
 
     protected:
       std::unique_ptr<AnovaCodec> codec_;
+      std::unique_ptr<DeviceState> state_;
       void control(const climate::ClimateCall &call) override;
-      uint16_t char_handle_;
+      void parse_data_(uint8_t* value, uint16_t value_len);
+      uint16_t name_char_handle_;
+      uint16_t pin_char_handle_;
       uint8_t current_request_;
       uint8_t *secret_;
     };

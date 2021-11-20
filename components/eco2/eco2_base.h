@@ -38,6 +38,18 @@ namespace esphome
 #define CMD_START "start\r"
 #define CMD_STOP "stop\r"
 
+    class DeviceState
+    {
+    public:
+      bool has_target_temp() { return this->has_target_temp_; }
+      bool has_pending_state_request() { return this->has_pending_state_request_; }
+      void set_pending_state_request(bool val) { this->has_pending_state_request_ = val; }
+
+    protected:
+      bool has_target_temp_;
+      bool has_pending_state_request_;
+    };
+
     class AnovaCodec
     {
     public:
@@ -52,7 +64,7 @@ namespace esphome
 
       AnovaPacket *get_start_request();
       AnovaPacket *get_stop_request();
-      uint8_t* bytesFromHexStr(const char* value, size_t len);
+      uint8_t *bytesFromHexStr(const char *value, size_t len);
 
       void decode(const uint8_t *data, uint16_t length);
       bool has_target_temp() { return this->has_target_temp_; }

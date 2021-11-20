@@ -19,54 +19,37 @@ namespace esphome
     void DanfossEco2::setup()
     {
       // 1. Initialize device state
-      this->codec_ = make_unique<AnovaCodec>();
+      this->codec_ = make_unique<AnovaCodec>(); // TODO remove
+      this->state_ = make_unique<DeviceState>();
       this->current_request_ = 0;
 
       // 2. Setup encryption key
-      auto status = xxtea_setup_key(this->secret_, sizeof(this->secret_));
+      std::string sec_hex = hexencode(this->secret_, 16);
+      ESP_LOGI(TAG, "[%s] secret bytes: %s", this->parent_->address_str().c_str(), sec_hex.c_str());
+
+      auto status = xxtea_setup_key(this->secret_, 16);
       if (status != XXTEA_STATUS_SUCCESS)
+      {
         ESP_LOGE(TAG, "xxtea_setup_key failed, status: %d", status);
+        this->mark_failed();
+        return;
+      }
     }
 
     void DanfossEco2::loop() {}
 
     void DanfossEco2::control(const ClimateCall &call)
     {
-      if (call.get_mode().has_value())
-      {
-        ClimateMode mode = *call.get_mode();
-        AnovaPacket *pkt;
-        switch (mode)
-        {
-        case climate::CLIMATE_MODE_OFF:
-          pkt = this->codec_->get_stop_request();
-          break;
-        case climate::CLIMATE_MODE_HEAT:
-          pkt = this->codec_->get_start_request();
-          break;
-        default:
-          ESP_LOGW(TAG, "Unsupported mode: %d", mode);
-          return;
-        }
-        auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, this->char_handle_,
-                                               pkt->length, pkt->data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
-        if (status)
-          ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), status);
-      }
-      if (call.get_target_temperature().has_value())
-      {
-        auto pkt = this->codec_->get_set_target_temp_request(*call.get_target_temperature());
-        auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, this->char_handle_,
-                                               pkt->length, pkt->data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
-        if (status)
-          ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), status);
-      }
     }
 
     void DanfossEco2::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
     {
       switch (event)
       {
+      case ESP_GATTC_CONNECT_EVT:
+      {
+        break;
+      }
       case ESP_GATTC_DISCONNECT_EVT:
       {
         this->current_temperature = NAN;
@@ -83,6 +66,7 @@ namespace esphome
           break;
         }
 
+        this->pin_char_handle_ = pinChr->handle;
         auto pinStatus =
             esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, pinChr->handle, sizeof(eco2Pin), eco2Pin, ESP_GATT_WRITE_TYPE_RSP, ESP_GATT_AUTH_REQ_NONE);
         if (pinStatus)
@@ -90,70 +74,40 @@ namespace esphome
         else
           ESP_LOGI(TAG, "[%s] esp_ble_gattc_write_char PIN, status=%d", this->parent_->address_str().c_str(), pinStatus);
 
-        auto nameChr = this->parent_->get_characteristic(ECO2_SERVICE_SETTINGS, ECO2_CHARACTERISTIC_NAME);
-        if (nameChr == nullptr)
-        {
-          ESP_LOGW(TAG, "[%s] No name characteristic found at device, not a Danfoss Eco?", this->get_name().c_str());
-          break;
-        }
-
-        this->char_handle_ = nameChr->handle;
         break;
       }
-      case ESP_GATTC_REG_FOR_NOTIFY_EVT:
+      case ESP_GATTC_WRITE_CHAR_EVT:
       {
-        this->node_state = espbt::ClientState::ESTABLISHED;
-        this->current_request_ = 0;
-        this->update();
+        if (param->write.status == ESP_GATT_OK && param->write.handle == this->pin_char_handle_)
+        {
+          ESP_LOGW(TAG, "[%s] Reading Name characteristic", this->get_name().c_str());
+
+          auto nameChr = this->parent_->get_characteristic(ECO2_SERVICE_SETTINGS, ECO2_CHARACTERISTIC_NAME);
+          if (nameChr == nullptr)
+          {
+            ESP_LOGW(TAG, "[%s] No name characteristic found at device, not a Danfoss Eco?", this->get_name().c_str());
+            break;
+          }
+          this->name_char_handle_ = nameChr->handle;
+          auto status = esp_ble_gattc_read_char(this->parent_->gattc_if, this->parent_->conn_id, nameChr->handle, ESP_GATT_AUTH_REQ_NONE);
+          if (status)
+            ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%d", this->parent_->address_str().c_str(), status);
+        }
         break;
       }
-      case ESP_GATTC_NOTIFY_EVT:
+      case ESP_GATTC_READ_CHAR_EVT:
       {
-        if (param->notify.handle != this->char_handle_)
+        if (param->read.conn_id != this->parent()->conn_id)
           break;
-        this->codec_->decode(param->notify.value, param->notify.value_len);
-        if (this->codec_->has_target_temp())
+        if (param->read.status != ESP_GATT_OK)
         {
-          this->target_temperature = this->codec_->target_temp_;
+          ESP_LOGW(TAG, "Error reading char at handle %d, status=%d", param->read.handle, param->read.status);
+          break;
         }
-        if (this->codec_->has_current_temp())
+        if (param->read.handle == this->name_char_handle_)
         {
-          this->current_temperature = this->codec_->current_temp_;
-        }
-        if (this->codec_->has_running())
-        {
-          this->mode = this->codec_->running_ ? climate::CLIMATE_MODE_HEAT : climate::CLIMATE_MODE_OFF;
-        }
-        if (this->codec_->has_unit())
-        {
-          this->current_request_++;
-        }
-        this->publish_state();
-
-        if (this->current_request_ > 1)
-        {
-          AnovaPacket *pkt = nullptr;
-          switch (this->current_request_++)
-          {
-          case 2:
-            pkt = this->codec_->get_read_target_temp_request();
-            break;
-          case 3:
-            pkt = this->codec_->get_read_current_temp_request();
-            break;
-          default:
-            this->current_request_ = 1;
-            break;
-          }
-          if (pkt != nullptr)
-          {
-            auto status =
-                esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, this->char_handle_, pkt->length,
-                                         pkt->data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
-            if (status)
-              ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(),
-                       status);
-          }
+          this->status_clear_warning();
+          this->parse_data_(param->read.value, param->read.value_len);
         }
         break;
       }
@@ -162,21 +116,60 @@ namespace esphome
       }
     }
 
-    void DanfossEco2::update()
+    void reverse_chunks(byte data[], int len, byte *reversed_buf)
     {
-      if (this->node_state != espbt::ClientState::ESTABLISHED)
-        return;
-
-      if (this->current_request_ < 2)
+      for (int i = 0; i < len; i += 4)
       {
-        auto pkt = this->codec_->get_read_device_status_request();
-
-        auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, this->char_handle_,
-                                               pkt->length, pkt->data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
-        if (status)
-          ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), status);
-        this->current_request_++;
+        int l = min(4, len - i); // limit for a chunk, 4 or what's left
+        for (int j = 0; j < l; j++)
+        {
+          reversed_buf[i + j] = data[i + (l - 1 - j)];
+        }
       }
+    }
+
+    void DanfossEco2::parse_data_(uint8_t *value, uint16_t value_len)
+    {
+      std::string s = hexencode(value, value_len);
+      ESP_LOGI(TAG, "[%s] raw value: %s", this->parent_->address_str().c_str(), s.c_str());
+
+      uint8_t buffer[value_len];
+      reverse_chunks(value, value_len, buffer);
+      std::string s1 = hexencode(buffer, value_len);
+      ESP_LOGI(TAG, "[%s] reversed bytes: %s", this->parent_->address_str().c_str(), s1.c_str());
+
+      // Perform Decryption
+      auto xxtea_status = xxtea_decrypt(buffer, value_len);
+      if (xxtea_status != XXTEA_STATUS_SUCCESS)
+      {
+        ESP_LOGW(TAG, "[%s] xxtea_decrypt failed, status=%d", this->parent_->address_str().c_str(), xxtea_status);
+        return;
+      }
+      else
+      {
+        std::string s2 = hexencode(buffer, value_len);
+        ESP_LOGI(TAG, "[%s] decrypted bytes: %s", this->parent_->address_str().c_str(), s2.c_str());
+
+        reverse_chunks(buffer, value_len, value);
+        ESP_LOGI(TAG, "[%s] parsed value: %s", this->parent_->address_str().c_str(), value);
+      }
+    }
+
+    void DanfossEco2::update()
+    { /*
+      // Poller is asking us for sensor data, initiate the connection
+      if (this->node_state != espbt::ClientState::ESTABLISHED)
+      {
+        // initiate the connection sequence
+        this->client->connect();
+        // remember to request the data
+        this->state_->set_pending_state_request(true);
+        return;
+      }
+      else
+      {
+        // we are connected, so let's request the state data right away
+      }*/
     }
 
     void DanfossEco2::set_secret_key(const char *str)
