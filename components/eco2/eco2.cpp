@@ -18,17 +18,14 @@ namespace esphome
 
     void DanfossEco2::setup()
     {
+      // 1. Initialize device state
       this->codec_ = make_unique<AnovaCodec>();
       this->current_request_ = 0;
 
+      // 2. Setup encryption key
       auto status = xxtea_setup_key(this->secret_, sizeof(this->secret_));
       if (status != XXTEA_STATUS_SUCCESS)
-      {
-        ESP_LOGW(TAG, "xxtea_setup_key failed, status: %d", status);
-        return;
-      } else {
-        ESP_LOGI(TAG, "xxtea_setup_key OK");
-      }
+        ESP_LOGE(TAG, "xxtea_setup_key failed, status: %d", status);
     }
 
     void DanfossEco2::loop() {}
@@ -165,11 +162,6 @@ namespace esphome
       }
     }
 
-    void DanfossEco2::set_secret_key(const char *str)
-    {
-      this->secret_ = this->codec_->bytesFromHexStr(str, 32);
-    }
-
     void DanfossEco2::update()
     {
       if (this->node_state != espbt::ClientState::ESTABLISHED)
@@ -185,6 +177,11 @@ namespace esphome
           ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), status);
         this->current_request_++;
       }
+    }
+
+    void DanfossEco2::set_secret_key(const char *str)
+    {
+      this->secret_ = this->codec_->bytesFromHexStr(str, 32);
     }
 
   } // namespace eco2
