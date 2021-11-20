@@ -12,7 +12,7 @@
 
 namespace esphome
 {
-  namespace anova
+  namespace eco2
   {
 
     namespace espbt = esphome::esp32_ble_tracker;
@@ -23,7 +23,7 @@ namespace esphome
 
     static uint8_t eco2Pin[] = {0x30, 0x30, 0x30, 0x30};
 
-    class Anova : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
+    class DanfossEco2 : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {
     public:
       void setup() override;
@@ -53,7 +53,7 @@ namespace esphome
       bool fahrenheit_;
     };
 
-  } // namespace anova
+  } // namespace eco2
 } // namespace esphome
 
 #endif

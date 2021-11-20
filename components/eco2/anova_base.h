@@ -5,7 +5,7 @@
 
 namespace esphome
 {
-  namespace anova
+  namespace eco2
   {
     enum CurrentQuery
     {
@@ -81,5 +81,5 @@ namespace esphome
       CurrentQuery current_query_;
     };
 
-  } // namespace anova
+  } // namespace eco2
 } // namespace esphome

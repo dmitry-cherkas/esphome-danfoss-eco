@@ -11,15 +11,15 @@ UNITS = {
 CODEOWNERS = ["@buxtronix"]
 DEPENDENCIES = ["ble_client"]
 
-anova_ns = cg.esphome_ns.namespace("anova")
-Anova = anova_ns.class_(
-    "Anova", climate.Climate, ble_client.BLEClientNode, cg.PollingComponent
+eco_ns = cg.esphome_ns.namespace("eco2")
+DanfossEco = eco_ns.class_(
+    "DanfossEco2", climate.Climate, ble_client.BLEClientNode, cg.PollingComponent
 )
 
 CONFIG_SCHEMA = (
     climate.CLIMATE_SCHEMA.extend(
         {
-            cv.GenerateID(): cv.declare_id(Anova),
+            cv.GenerateID(): cv.declare_id(DanfossEco),
             cv.Required(CONF_UNIT_OF_MEASUREMENT): cv.enum(UNITS),
         }
     )

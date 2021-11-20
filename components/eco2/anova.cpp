@@ -5,24 +5,24 @@
 
 namespace esphome
 {
-  namespace anova
+  namespace eco2
   {
 
-    static const char *const TAG = "anova";
+    static const char *const TAG = "eco2";
 
     using namespace esphome::climate;
 
-    void Anova::dump_config() { LOG_CLIMATE("", "Anova BLE Cooker", this); }
+    void DanfossEco2::dump_config() { LOG_CLIMATE("", "DanfossEco2 BLE Cooker", this); }
 
-    void Anova::setup()
+    void DanfossEco2::setup()
     {
       this->codec_ = make_unique<AnovaCodec>();
       this->current_request_ = 0;
     }
 
-    void Anova::loop() {}
+    void DanfossEco2::loop() {}
 
-    void Anova::control(const ClimateCall &call)
+    void DanfossEco2::control(const ClimateCall &call)
     {
       if (call.get_mode().has_value())
       {
@@ -55,7 +55,7 @@ namespace esphome
       }
     }
 
-    void Anova::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
+    void DanfossEco2::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
     {
       switch (event)
       {
@@ -119,7 +119,7 @@ namespace esphome
         if (this->codec_->has_unit())
         {
           this->fahrenheit_ = (this->codec_->unit_ == 'f');
-          ESP_LOGD(TAG, "Anova units is %s", this->fahrenheit_ ? "fahrenheit" : "celcius");
+          ESP_LOGD(TAG, "DanfossEco2 units is %s", this->fahrenheit_ ? "fahrenheit" : "celcius");
           this->current_request_++;
         }
         this->publish_state();
@@ -156,9 +156,9 @@ namespace esphome
       }
     }
 
-    void Anova::set_unit_of_measurement(const char *unit) { this->fahrenheit_ = !strncmp(unit, "f", 1); }
+    void DanfossEco2::set_unit_of_measurement(const char *unit) { this->fahrenheit_ = !strncmp(unit, "f", 1); }
 
-    void Anova::update()
+    void DanfossEco2::update()
     {
       if (this->node_state != espbt::ClientState::ESTABLISHED)
         return;
@@ -176,7 +176,7 @@ namespace esphome
       }
     }
 
-  } // namespace anova
+  } // namespace eco2
 } // namespace esphome
 
 #endif
