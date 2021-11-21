@@ -63,6 +63,8 @@ namespace esphome
       uint16_t temperature_chr_handle_;
       uint16_t current_time_chr_handle_;
       uint16_t settings_chr_handle_;
+
+      uint8_t request_counter_ = 0;
     };
 
   } // namespace danfoss_eco

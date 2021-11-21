@@ -72,6 +72,8 @@ namespace esphome
         }
         else if (param->write.handle == this->pin_chr_handle_)
         { // PIN OK
+          this->node_state = espbt::ClientState::ESTABLISHED;
+
           this->name_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
           this->battery_chr_handle_ = this->read_characteristic(SERVICE_BATTERY, CHARACTERISTIC_BATTERY);
           this->temperature_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE);
@@ -92,6 +94,8 @@ namespace esphome
         {
           uint8_t *name = this->decrypt(param->read.value, param->read.value_len);
           ESP_LOGI(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
+          std::string name_str((char*)name);
+          this->set_name(name_str);
         }
         else if (param->read.handle == this->battery_chr_handle_)
         {
@@ -104,6 +108,11 @@ namespace esphome
           float set_point_temperature = temperatures[0] / 2.0f;
           float room_temperature = temperatures[1] / 2.0f;
           ESP_LOGI(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
+
+          // apply read configuration to the component
+          this->target_temperature = set_point_temperature;
+          this->current_temperature = room_temperature;
+          this->publish_state();
         }
         else if (param->read.handle == this->current_time_chr_handle_)
         {
@@ -155,10 +164,18 @@ namespace esphome
 
           int vacation_to = parse_int(settings, 10);
           ESP_LOGI(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
+
+          // apply read configuration to the component
+          this->set_visual_min_temperature_override(temperature_min);
+          this->set_visual_max_temperature_override(temperature_max);
+          this->publish_state();
         }
 
-        // TODO - check if any requests pending. if not - disable the parent
-        //this->parent()->set_enabled(false);
+        if (--this->request_counter_ == 0)
+        {
+          this->parent()->set_enabled(false);
+          this->node_state = espbt::ClientState::IDLE;
+        }
         break;
 
       default:
@@ -206,6 +223,9 @@ namespace esphome
       if (status != ESP_OK)
         ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%d", this->parent()->address_str().c_str(), status);
 
+      // increment request counter to keep track of pending requests
+      this->request_counter_++;
+
       return chr->handle;
     }
 
@@ -239,18 +259,14 @@ namespace esphome
     // Update is triggered by on defined polling interval (see PollingComponent) to trigger state update report
     void Device::update()
     {
-      if (this->node_state != esp32_ble_tracker::ClientState::ESTABLISHED)
+      if (this->node_state != espbt::ClientState::ESTABLISHED)
       {
         if (!parent()->enabled)
         {
-          ESP_LOGD(TAG, "[%s] received update request, reconnecting to device", this->parent()->address_str().c_str());
+          ESP_LOGD(TAG, "[%s] received update request, re-enabling ble_client", this->parent()->address_str().c_str());
           parent()->set_enabled(true);
-          parent()->connect();
         }
-        else
-        {
-          ESP_LOGD(TAG, "[%s] received update request, connection already in progress", this->parent()->address_str().c_str());
-        }
+        parent()->connect();
       }
     }
 
