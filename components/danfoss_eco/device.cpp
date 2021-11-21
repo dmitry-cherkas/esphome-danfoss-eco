@@ -133,7 +133,7 @@ namespace esphome
 
           uint8_t schedule_mode = settings[4];
           ESP_LOGI(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
-          
+
           float vacation_temperature = settings[5] / 2.0f;
           ESP_LOGI(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
 
@@ -143,7 +143,7 @@ namespace esphome
           time_t vacation_to = parse_int(settings, 10);
           ESP_LOGI(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
         }
-        
+
         // TODO - check if any requests pending. if not - disable the parent
         //this->parent()->set_enabled(false);
         break;
@@ -167,8 +167,8 @@ namespace esphome
       auto status = esp_ble_gattc_write_char(this->parent()->gattc_if,
                                              this->parent()->conn_id,
                                              this->pin_chr_handle_,
-                                             sizeof(pin_code),
-                                             pin_code,
+                                             sizeof(this->pin_code_),
+                                             this->pin_code_,
                                              ESP_GATT_WRITE_TYPE_RSP,
                                              ESP_GATT_AUTH_REQ_NONE);
       if (status != ESP_OK)
@@ -239,6 +239,20 @@ namespace esphome
           ESP_LOGD(TAG, "[%s] received update request, connection already in progress", this->parent()->address_str().c_str());
         }
       }
+    }
+
+    void Device::set_pin_code(const std::string &str)
+    {
+      if (str.length() > 0)
+      {
+        this->pin_code_ = (uint8_t *)str.c_str();
+      }
+      else
+      {
+        this->pin_code_ = default_pin_code;
+      }
+      std::string hex_str = hexencode(this->pin_code_, sizeof(this->pin_code_));
+      ESP_LOGD(TAG, "[%s] PIN bytes: %s", this->parent()->address_str().c_str(), hex_str.c_str());
     }
 
     void Device::set_secret_key(const char *str)

@@ -29,7 +29,7 @@ namespace esphome
     static auto SERVICE_BATTERY = espbt::ESPBTUUID::from_uint32(0x180F);
     static auto CHARACTERISTIC_BATTERY = espbt::ESPBTUUID::from_uint32(0x2A19); // 0x10
 
-    static uint8_t pin_code[] = {0x30, 0x30, 0x30, 0x30}; // TODO make PIN configurable, since it can be changed via the app
+    static uint8_t default_pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
     class Device : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {
@@ -53,18 +53,20 @@ namespace esphome
       }
 
       void set_secret_key(const char *);
+      void set_pin_code(const std::string &);
 
     protected:
       void control(const climate::ClimateCall &call) override;
       void write_pin();
       uint16_t read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid);
-      uint8_t * decrypt(uint8_t *value, uint16_t value_len);
+      uint8_t *decrypt(uint8_t *value, uint16_t value_len);
 
       std::unique_ptr<DeviceState> state_;
 
       uint8_t *secret_;
-      uint16_t pin_chr_handle_;
+      uint8_t *pin_code_;
 
+      uint16_t pin_chr_handle_;
       uint16_t name_chr_handle_;
       uint16_t battery_chr_handle_;
       uint16_t temperature_chr_handle_;

@@ -45,4 +45,5 @@ climate:
   - platform: danfoss_eco
     name: "My Room eTRV"
     ble_client_id: room_eco2
+    pin_code: "0000"
     secret_key: deadbeefcafebabedeadbeefcafebabe
