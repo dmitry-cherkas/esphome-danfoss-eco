@@ -29,7 +29,7 @@ namespace esphome
     static auto SERVICE_BATTERY = espbt::ESPBTUUID::from_uint32(0x180F);
     static auto CHARACTERISTIC_BATTERY = espbt::ESPBTUUID::from_uint32(0x2A19); // 0x10
 
-    static uint8_t pin_code[] = {0x30, 0x30, 0x30, 0x30};
+    static uint8_t pin_code[] = {0x30, 0x30, 0x30, 0x30}; // TODO make PIN configurable, since it can be changed via the app
 
     class Device : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {

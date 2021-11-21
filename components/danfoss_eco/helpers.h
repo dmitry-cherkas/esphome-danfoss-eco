@@ -21,7 +21,17 @@ namespace esphome
             return buff;
         }
 
-        static void reverse_chunks(uint8_t data[], int len, uint8_t *reversed_buf)
+        static int parse_int(uint8_t *data, int start_pos)
+        {
+            return int(data[start_pos] << 24 | data[start_pos + 1] << 16 | data[start_pos + 2] << 8 | data[start_pos + 3]);
+        }
+
+        static bool parse_bit(uint8_t value, int pos)
+        {
+            return (value & (1 << pos)) >> pos;
+        }
+
+        static void reverse_chunks(uint8_t *data, int len, uint8_t *reversed_buf)
         {
             for (int i = 0; i < len; i += 4)
             {

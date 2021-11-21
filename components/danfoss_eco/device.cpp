@@ -62,8 +62,8 @@ namespace esphome
           this->name_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
           this->battery_chr_handle_ = this->read_characteristic(SERVICE_BATTERY, CHARACTERISTIC_BATTERY);
           this->temperature_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE);
-
-          // TODO - request more chars here as well
+          this->current_time_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_CURRENT_TIME);
+          this->settings_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS);
         }
         break;
 
@@ -85,7 +85,6 @@ namespace esphome
           uint8_t battery_level = param->read.value[0];
           ESP_LOGI(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
         }
-
         else if (param->read.handle == this->temperature_chr_handle_)
         {
           uint8_t *temperatures = this->decrypt(param->read.value, param->read.value_len);
@@ -93,7 +92,58 @@ namespace esphome
           float room_temperature = temperatures[1] / 2.0f;
           ESP_LOGI(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
         }
+        else if (param->read.handle == this->current_time_chr_handle_)
+        {
+          uint8_t *current_time = this->decrypt(param->read.value, param->read.value_len);
+          int local_time = parse_int(current_time, 0);
+          int time_offset = parse_int(current_time, 4);
+          ESP_LOGI(TAG, "[%s] local_time: %d, time_offset: %d", this->parent()->address_str().c_str(), local_time, time_offset);
+        }
+        else if (param->read.handle == this->settings_chr_handle_)
+        {
+          uint8_t *settings = this->decrypt(param->read.value, param->read.value_len);
+          uint8_t config_bits = settings[0];
 
+          bool adaptable_regulation = parse_bit(config_bits, 0);
+          ESP_LOGI(TAG, "[%s] adaptable_regulation: %d", this->parent()->address_str().c_str(), adaptable_regulation);
+
+          bool vertical_intallation = parse_bit(config_bits, 2);
+          ESP_LOGI(TAG, "[%s] vertical_intallation: %d", this->parent()->address_str().c_str(), vertical_intallation);
+
+          bool display_flip = parse_bit(config_bits, 3);
+          ESP_LOGI(TAG, "[%s] display_flip: %d", this->parent()->address_str().c_str(), display_flip);
+
+          bool slow_regulation = parse_bit(config_bits, 4);
+          ESP_LOGI(TAG, "[%s] slow_regulation: %d", this->parent()->address_str().c_str(), slow_regulation);
+
+          bool valve_installed = parse_bit(config_bits, 6);
+          ESP_LOGI(TAG, "[%s] valve_installed: %d", this->parent()->address_str().c_str(), valve_installed);
+
+          bool lock_control = parse_bit(config_bits, 7);
+          ESP_LOGI(TAG, "[%s] lock_control: %d", this->parent()->address_str().c_str(), lock_control);
+
+          float temperature_min = settings[1] / 2.0f;
+          ESP_LOGI(TAG, "[%s] temperature_min: %2.1f°C", this->parent()->address_str().c_str(), temperature_min);
+
+          float temperature_max = settings[2] / 2.0f;
+          ESP_LOGI(TAG, "[%s] temperature_max: %2.1f°C", this->parent()->address_str().c_str(), temperature_max);
+
+          float frost_protection_temperature = settings[3] / 2.0f;
+          ESP_LOGI(TAG, "[%s] frost_protection_temperature: %2.1f°C", this->parent()->address_str().c_str(), frost_protection_temperature);
+
+          uint8_t schedule_mode = settings[4];
+          ESP_LOGI(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
+          
+          float vacation_temperature = settings[5] / 2.0f;
+          ESP_LOGI(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
+
+          time_t vacation_from = parse_int(settings, 6);
+          ESP_LOGI(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
+
+          time_t vacation_to = parse_int(settings, 10);
+          ESP_LOGI(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
+        }
+        
         // TODO - check if any requests pending. if not - disable the parent
         //this->parent()->set_enabled(false);
         break;
