@@ -20,8 +20,14 @@ namespace esphome
     namespace espbt = esphome::esp32_ble_tracker;
 
     static auto SERVICE_SETTINGS = espbt::ESPBTUUID::from_raw("10020000-2749-0001-0000-00805f9b042f");
-    static auto CHARACTERISTIC_PIN = espbt::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");
-    static auto CHARACTERISTIC_NAME = espbt::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");
+    static auto CHARACTERISTIC_PIN = espbt::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");          // 0x24
+    static auto CHARACTERISTIC_SETTINGS = espbt::ESPBTUUID::from_raw("10020003-2749-0001-0000-00805f9b042f");     // 0x2a
+    static auto CHARACTERISTIC_TEMPERATURE = espbt::ESPBTUUID::from_raw("10020005-2749-0001-0000-00805f9b042f");  // 0x2d
+    static auto CHARACTERISTIC_NAME = espbt::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");         // 0x30
+    static auto CHARACTERISTIC_CURRENT_TIME = espbt::ESPBTUUID::from_raw("10020008-2749-0001-0000-00805f9b042f"); // 0x36
+
+    static auto SERVICE_BATTERY = espbt::ESPBTUUID::from_uint32(0x180F);
+    static auto CHARACTERISTIC_BATTERY = espbt::ESPBTUUID::from_uint32(0x2A19); // 0x10
 
     static uint8_t pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
@@ -51,17 +57,22 @@ namespace esphome
     protected:
       void control(const climate::ClimateCall &call) override;
       void write_pin();
-      void request_name();
+      uint16_t read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid);
       void parse_data_(uint8_t *value, uint16_t value_len);
 
       std::unique_ptr<DeviceState> state_;
 
-      uint16_t name_char_handle_;
-      uint16_t pin_chr_handle_;
       uint8_t *secret_;
+      uint16_t pin_chr_handle_;
+
+      uint16_t name_chr_handle_;
+      uint16_t battery_chr_handle_;
+      uint16_t temperature_chr_handle_;
+      uint16_t current_time_chr_handle_;
+      uint16_t settings_chr_handle_;
     };
 
   } // namespace danfoss_eco
 } // namespace esphome
 
-#endif
+#endif // USE_ESP32

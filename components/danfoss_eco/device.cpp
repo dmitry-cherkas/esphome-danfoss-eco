@@ -55,11 +55,13 @@ namespace esphome
       case ESP_GATTC_WRITE_CHAR_EVT:
         if (param->write.status != ESP_GATT_OK)
         {
-          ESP_LOGW(TAG, "[%s] failed to write characteristic: handle=%02x, status=%d", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
+          ESP_LOGW(TAG, "[%s] failed to write characteristic: handle %02x, status=%d", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
         }
         else if (param->write.handle == this->pin_chr_handle_)
         { // PIN OK
-          this->request_name();
+          this->name_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
+          this->battery_chr_handle_ = this->read_characteristic(SERVICE_BATTERY, CHARACTERISTIC_BATTERY);
+
           // TODO - request more chars here as well
         }
         break;
@@ -67,16 +69,22 @@ namespace esphome
       case ESP_GATTC_READ_CHAR_EVT:
         if (param->read.status != ESP_GATT_OK)
         {
-          ESP_LOGW(TAG, "[%s] failed to read characteristic: handle=%02x, status=%d", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
+          ESP_LOGW(TAG, "[%s] failed to read characteristic: handle %02x, status=%d", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
+          break;
         }
-        else if (param->read.handle == this->name_char_handle_)
-        {
-          this->status_clear_warning();
+        this->status_clear_warning();
+
+        if (param->read.handle == this->name_chr_handle_)
           this->parse_data_(param->read.value, param->read.value_len);
 
-          // TODO - check if any requests pending. if not - disable the parent
-          this->parent()->set_enabled(false);
+        if (param->read.handle == this->battery_chr_handle_)
+        {
+          uint8_t battery_level = param->read.value[0];
+          ESP_LOGI(TAG, "[%s] battery level: %d%", this->parent()->address_str().c_str(), battery_level);
         }
+
+        // TODO - check if any requests pending. if not - disable the parent
+        //this->parent()->set_enabled(false);
         break;
 
       default:
@@ -103,37 +111,39 @@ namespace esphome
                                              ESP_GATT_WRITE_TYPE_RSP,
                                              ESP_GATT_AUTH_REQ_NONE);
       if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%02x", this->parent()->address_str().c_str(), status);
+        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent()->address_str().c_str(), status);
     }
 
-    void Device::request_name()
+    uint16_t Device::read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid)
     {
-      ESP_LOGI(TAG, "[%s] reading Name characteristic", this->parent()->address_str().c_str());
-      auto name_chr = this->parent()->get_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
-      if (name_chr == nullptr)
+      ESP_LOGI(TAG, "[%s] reading characteristic uuid=%s", this->parent()->address_str().c_str(), characteristic_uuid.to_string().c_str());
+      auto chr = this->parent()->get_characteristic(service_uuid, characteristic_uuid);
+      if (chr == nullptr)
       {
-        ESP_LOGW(TAG, "[%s] no name characteristic found at device, not a Danfoss Eco?", this->get_name().c_str());
+        ESP_LOGW(TAG, "[%s] characteristic uuid=%s not found", this->get_name().c_str(), characteristic_uuid.to_string().c_str());
         this->status_set_warning();
-        return;
+        return NAN_HANDLE;
       }
-      this->name_char_handle_ = name_chr->handle;
+
       auto status = esp_ble_gattc_read_char(this->parent()->gattc_if,
                                             this->parent()->conn_id,
-                                            name_chr->handle,
+                                            chr->handle,
                                             ESP_GATT_AUTH_REQ_NONE);
       if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%02x", this->parent()->address_str().c_str(), status);
+        ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%d", this->parent()->address_str().c_str(), status);
+
+      return chr->handle;
     }
 
     void Device::parse_data_(uint8_t *value, uint16_t value_len)
     {
       std::string s = hexencode(value, value_len);
-      ESP_LOGI(TAG, "[%s] raw value: %s", this->parent()->address_str().c_str(), s.c_str());
+      ESP_LOGD(TAG, "[%s] raw value: %s", this->parent()->address_str().c_str(), s.c_str());
 
       uint8_t buffer[value_len];
       reverse_chunks(value, value_len, buffer);
       std::string s1 = hexencode(buffer, value_len);
-      ESP_LOGI(TAG, "[%s] reversed bytes: %s", this->parent()->address_str().c_str(), s1.c_str());
+      ESP_LOGD(TAG, "[%s] reversed bytes: %s", this->parent()->address_str().c_str(), s1.c_str());
 
       // Perform Decryption
       auto xxtea_status = xxtea_decrypt(buffer, value_len);
@@ -145,7 +155,7 @@ namespace esphome
       else
       {
         std::string s2 = hexencode(buffer, value_len);
-        ESP_LOGI(TAG, "[%s] decrypted bytes: %s", this->parent()->address_str().c_str(), s2.c_str());
+        ESP_LOGD(TAG, "[%s] decrypted bytes: %s", this->parent()->address_str().c_str(), s2.c_str());
 
         reverse_chunks(buffer, value_len, value);
         ESP_LOGI(TAG, "[%s] parsed value: %s", this->parent()->address_str().c_str(), value);
@@ -159,13 +169,13 @@ namespace esphome
       {
         if (!parent()->enabled)
         {
-          ESP_LOGI(TAG, "[%s] received update request, reconnecting to device", this->parent()->address_str().c_str());
+          ESP_LOGD(TAG, "[%s] received update request, reconnecting to device", this->parent()->address_str().c_str());
           parent()->set_enabled(true);
           parent()->connect();
         }
         else
         {
-          ESP_LOGI(TAG, "[%s] received update request, connection already in progress", this->parent()->address_str().c_str());
+          ESP_LOGD(TAG, "[%s] received update request, connection already in progress", this->parent()->address_str().c_str());
         }
       }
     }
@@ -175,7 +185,7 @@ namespace esphome
       this->secret_ = parse_hex_str(str, 32);
 
       std::string hex_str = hexencode(this->secret_, 16);
-      ESP_LOGI(TAG, "[%s] secret bytes: %s", this->parent()->address_str().c_str(), hex_str.c_str());
+      ESP_LOGD(TAG, "[%s] secret bytes: %s", this->parent()->address_str().c_str(), hex_str.c_str());
     }
 
   } // namespace danfoss_eco

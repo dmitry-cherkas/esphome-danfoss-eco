@@ -9,6 +9,7 @@ namespace esphome
     namespace danfoss_eco
     {
         static const char *const TAG = "danfoss_eco";
+        static const uint16_t NAN_HANDLE = -1;
 
         static uint8_t *parse_hex_str(const char *value, size_t str_len)
         {

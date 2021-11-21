@@ -7,6 +7,12 @@ esphome:
 
 # Enable logging
 logger:
+  level: DEBUG
+  logs:
+    esp32_ble_tracker: WARN
+    ble_client: INFO
+    wifi: INFO
+    logger: NONE
 
 # Enable Home Assistant API
 api:
