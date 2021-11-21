@@ -41,16 +41,7 @@ namespace esphome
       void dump_config() override;
       float get_setup_priority() const override { return setup_priority::DATA; }
 
-      climate::ClimateTraits traits() override
-      {
-        auto traits = climate::ClimateTraits();
-        traits.set_supports_current_temperature(true);
-        traits.set_supports_heat_mode(true);
-        traits.set_visual_min_temperature(25.0);
-        traits.set_visual_max_temperature(100.0);
-        traits.set_visual_temperature_step(0.1);
-        return traits;
-      }
+      climate::ClimateTraits traits() override;
 
       void set_secret_key(const char *);
       void set_pin_code(const std::string &);

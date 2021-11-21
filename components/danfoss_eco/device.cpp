@@ -33,6 +33,19 @@ namespace esphome
     {
     }
 
+    ClimateTraits Device::traits()
+    {
+      auto traits = ClimateTraits();
+      traits.set_supports_current_temperature(true);
+
+      std::set<ClimateMode> modes({ClimateMode::CLIMATE_MODE_OFF, ClimateMode::CLIMATE_MODE_HEAT});
+      traits.set_supported_modes(modes);
+      traits.set_visual_min_temperature(5.0);
+      traits.set_visual_max_temperature(50.0);
+      traits.set_visual_temperature_step(0.5);
+      return traits;
+    }
+
     void Device::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
     {
       switch (event)
@@ -137,10 +150,10 @@ namespace esphome
           float vacation_temperature = settings[5] / 2.0f;
           ESP_LOGI(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
 
-          time_t vacation_from = parse_int(settings, 6);
+          int vacation_from = parse_int(settings, 6);
           ESP_LOGI(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
 
-          time_t vacation_to = parse_int(settings, 10);
+          int vacation_to = parse_int(settings, 10);
           ESP_LOGI(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
         }
 
