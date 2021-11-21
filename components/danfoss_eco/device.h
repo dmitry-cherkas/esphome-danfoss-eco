@@ -4,7 +4,9 @@
 #include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/climate/climate.h"
-#include "eco2_base.h"
+
+#include "device_state.h"
+#include "helpers.h"
 
 #ifdef USE_ESP32
 
@@ -29,10 +31,10 @@ namespace esphome
       void setup() override;
       void loop() override;
       void update() override;
-      void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
-                               esp_ble_gattc_cb_param_t *param) override;
+      void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) override;
       void dump_config() override;
       float get_setup_priority() const override { return setup_priority::DATA; }
+
       climate::ClimateTraits traits() override
       {
         auto traits = climate::ClimateTraits();
@@ -43,16 +45,17 @@ namespace esphome
         traits.set_visual_temperature_step(0.1);
         return traits;
       }
+
       void set_secret_key(const char *);
 
     protected:
-      std::unique_ptr<AnovaCodec> codec_;
-      std::unique_ptr<DeviceState> state_;
       void control(const climate::ClimateCall &call) override;
-      void parse_data_(uint8_t* value, uint16_t value_len);
+      void parse_data_(uint8_t *value, uint16_t value_len);
+
+      std::unique_ptr<DeviceState> state_;
+
       uint16_t name_char_handle_;
       uint16_t pin_char_handle_;
-      uint8_t current_request_;
       uint8_t *secret_;
     };
 

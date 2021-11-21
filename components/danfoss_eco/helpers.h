@@ -1,0 +1,35 @@
+#pragma once
+
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
+
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+namespace esphome
+{
+    namespace danfoss_eco
+    {
+        static const char *const TAG = "danfoss_eco";
+
+        static uint8_t *parse_hex_str(const char *value, size_t str_len)
+        {
+            size_t len = str_len / 2;
+            uint8_t *buff = (uint8_t *)malloc(sizeof(uint8_t) * len);
+            for (size_t i = 0; i < len; i++)
+                buff[i] = (parse_hex(value[i * 2]).value() << 4) | parse_hex(value[i * 2 + 1]).value();
+
+            return buff;
+        }
+
+        static void reverse_chunks(uint8_t data[], int len, uint8_t *reversed_buf)
+        {
+            for (int i = 0; i < len; i += 4)
+            {
+                int l = MIN(4, len - i); // limit for a chunk, 4 or what's left
+                for (int j = 0; j < l; j++)
+                {
+                    reversed_buf[i + j] = data[i + (l - 1 - j)];
+                }
+            }
+        }
+    }
+}

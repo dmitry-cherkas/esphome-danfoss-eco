@@ -1,6 +1,4 @@
-#include "eco2.h"
-#include "esphome/core/log.h"
-#include "esphome/core/helpers.h"
+#include "device.h"
 #include <xxtea-lib.h>
 
 #ifdef USE_ESP32
@@ -17,14 +15,9 @@ namespace esphome
     void Device::setup()
     {
       // 1. Initialize device state
-      this->codec_ = make_unique<AnovaCodec>(); // TODO remove
       this->state_ = make_unique<DeviceState>();
-      this->current_request_ = 0;
 
       // 2. Setup encryption key
-      std::string sec_hex = hexencode(this->secret_, 16);
-      ESP_LOGI(TAG, "[%s] secret bytes: %s", this->parent_->address_str().c_str(), sec_hex.c_str());
-
       auto status = xxtea_setup_key(this->secret_, 16);
       if (status != XXTEA_STATUS_SUCCESS)
       {
@@ -114,18 +107,6 @@ namespace esphome
       }
     }
 
-    void reverse_chunks(byte data[], int len, byte *reversed_buf)
-    {
-      for (int i = 0; i < len; i += 4)
-      {
-        int l = min(4, len - i); // limit for a chunk, 4 or what's left
-        for (int j = 0; j < l; j++)
-        {
-          reversed_buf[i + j] = data[i + (l - 1 - j)];
-        }
-      }
-    }
-
     void Device::parse_data_(uint8_t *value, uint16_t value_len)
     {
       std::string s = hexencode(value, value_len);
@@ -154,25 +135,15 @@ namespace esphome
     }
 
     void Device::update()
-    { /*
-      // Poller is asking us for sensor data, initiate the connection
-      if (this->node_state != espbt::ClientState::ESTABLISHED)
-      {
-        // initiate the connection sequence
-        this->client->connect();
-        // remember to request the data
-        this->state_->set_pending_state_request(true);
-        return;
-      }
-      else
-      {
-        // we are connected, so let's request the state data right away
-      }*/
+    {
     }
 
     void Device::set_secret_key(const char *str)
     {
-      this->secret_ = this->codec_->bytesFromHexStr(str, 32);
+      this->secret_ = parse_hex_str(str, 32);
+
+      std::string hex_str = hexencode(this->secret_, 16);
+      ESP_LOGI(TAG, "[%s] secret bytes: %s", this->parent_->address_str().c_str(), hex_str.c_str());
     }
 
   } // namespace danfoss_eco
