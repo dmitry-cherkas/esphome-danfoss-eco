@@ -61,6 +61,7 @@ namespace esphome
         { // PIN OK
           this->name_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
           this->battery_chr_handle_ = this->read_characteristic(SERVICE_BATTERY, CHARACTERISTIC_BATTERY);
+          this->temperature_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE);
 
           // TODO - request more chars here as well
         }
@@ -75,12 +76,22 @@ namespace esphome
         this->status_clear_warning();
 
         if (param->read.handle == this->name_chr_handle_)
-          this->parse_data_(param->read.value, param->read.value_len);
-
-        if (param->read.handle == this->battery_chr_handle_)
+        {
+          uint8_t *name = this->decrypt(param->read.value, param->read.value_len);
+          ESP_LOGI(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
+        }
+        else if (param->read.handle == this->battery_chr_handle_)
         {
           uint8_t battery_level = param->read.value[0];
-          ESP_LOGI(TAG, "[%s] battery level: %d%", this->parent()->address_str().c_str(), battery_level);
+          ESP_LOGI(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
+        }
+
+        else if (param->read.handle == this->temperature_chr_handle_)
+        {
+          uint8_t *temperatures = this->decrypt(param->read.value, param->read.value_len);
+          float set_point_temperature = temperatures[0] / 2.0f;
+          float room_temperature = temperatures[1] / 2.0f;
+          ESP_LOGI(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
         }
 
         // TODO - check if any requests pending. if not - disable the parent
@@ -135,7 +146,7 @@ namespace esphome
       return chr->handle;
     }
 
-    void Device::parse_data_(uint8_t *value, uint16_t value_len)
+    uint8_t *Device::decrypt(uint8_t *value, uint16_t value_len)
     {
       std::string s = hexencode(value, value_len);
       ESP_LOGD(TAG, "[%s] raw value: %s", this->parent()->address_str().c_str(), s.c_str());
@@ -143,23 +154,23 @@ namespace esphome
       uint8_t buffer[value_len];
       reverse_chunks(value, value_len, buffer);
       std::string s1 = hexencode(buffer, value_len);
-      ESP_LOGD(TAG, "[%s] reversed bytes: %s", this->parent()->address_str().c_str(), s1.c_str());
+      ESP_LOGV(TAG, "[%s] reversed bytes: %s", this->parent()->address_str().c_str(), s1.c_str());
 
       // Perform Decryption
       auto xxtea_status = xxtea_decrypt(buffer, value_len);
       if (xxtea_status != XXTEA_STATUS_SUCCESS)
       {
         ESP_LOGW(TAG, "[%s] xxtea_decrypt failed, status=%d", this->parent()->address_str().c_str(), xxtea_status);
-        return;
       }
       else
       {
         std::string s2 = hexencode(buffer, value_len);
-        ESP_LOGD(TAG, "[%s] decrypted bytes: %s", this->parent()->address_str().c_str(), s2.c_str());
+        ESP_LOGV(TAG, "[%s] decrypted reversed bytes: %s", this->parent()->address_str().c_str(), s2.c_str());
 
         reverse_chunks(buffer, value_len, value);
-        ESP_LOGI(TAG, "[%s] parsed value: %s", this->parent()->address_str().c_str(), value);
+        ESP_LOGD(TAG, "[%s] decrypted value: %s", this->parent()->address_str().c_str(), value);
       }
+      return value;
     }
 
     // Update is triggered by on defined polling interval (see PollingComponent) to trigger state update report

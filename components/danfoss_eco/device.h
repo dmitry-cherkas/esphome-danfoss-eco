@@ -58,7 +58,7 @@ namespace esphome
       void control(const climate::ClimateCall &call) override;
       void write_pin();
       uint16_t read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid);
-      void parse_data_(uint8_t *value, uint16_t value_len);
+      uint8_t * decrypt(uint8_t *value, uint16_t value_len);
 
       std::unique_ptr<DeviceState> state_;
 
