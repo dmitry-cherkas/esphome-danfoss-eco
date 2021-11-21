@@ -36,7 +36,7 @@ ble_client:
     id: room_eco2
 
 climate:
-  - platform: eco2
+  - platform: danfoss_eco
     name: "My Room eTRV"
     ble_client_id: room_eco2
     secret_key: deadbeefcafebabedeadbeefcafebabe

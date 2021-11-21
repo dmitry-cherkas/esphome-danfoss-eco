@@ -12,18 +12,18 @@
 
 namespace esphome
 {
-  namespace eco2
+  namespace danfoss_eco
   {
 
     namespace espbt = esphome::esp32_ble_tracker;
 
-    static auto ECO2_SERVICE_SETTINGS = espbt::ESPBTUUID::from_raw("10020000-2749-0001-0000-00805f9b042f");
-    static auto ECO2_CHARACTERISTIC_PIN = espbt::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");
-    static auto ECO2_CHARACTERISTIC_NAME = espbt::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");
+    static auto SERVICE_SETTINGS = espbt::ESPBTUUID::from_raw("10020000-2749-0001-0000-00805f9b042f");
+    static auto CHARACTERISTIC_PIN = espbt::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");
+    static auto CHARACTERISTIC_NAME = espbt::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");
 
-    static uint8_t eco2Pin[] = {0x30, 0x30, 0x30, 0x30};
+    static uint8_t pinCode[] = {0x30, 0x30, 0x30, 0x30};
 
-    class DanfossEco2 : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
+    class Device : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {
     public:
       void setup() override;
@@ -56,7 +56,7 @@ namespace esphome
       uint8_t *secret_;
     };
 
-  } // namespace eco2
+  } // namespace danfoss_eco
 } // namespace esphome
 
 #endif

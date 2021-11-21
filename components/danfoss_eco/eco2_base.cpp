@@ -4,7 +4,7 @@
 
 namespace esphome
 {
-  namespace eco2
+  namespace danfoss_eco
   {
 
     float ftoc(float f) { return (f - 32.0) * (5.0f / 9.0f); }
@@ -15,7 +15,7 @@ namespace esphome
     {
       this->packet_.length = strlen((char *)this->packet_.data);
       this->packet_.data[this->packet_.length] = '\0';
-      ESP_LOGV("eco2", "SendPkt: %s\n", this->packet_.data);
+      ESP_LOGV(TAG, "SendPkt: %s\n", this->packet_.data);
       return &this->packet_;
     }
 
@@ -169,5 +169,5 @@ namespace esphome
 
       return buff;
     }
-  } // namespace eco2
+  } // namespace danfoss_eco
 } // namespace esphome

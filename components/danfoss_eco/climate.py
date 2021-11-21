@@ -8,9 +8,9 @@ DEPENDENCIES = ["ble_client"]
 
 CONF_SECRET_KEY = 'secret_key'
 
-eco_ns = cg.esphome_ns.namespace("eco2")
+eco_ns = cg.esphome_ns.namespace("danfoss_eco")
 DanfossEco = eco_ns.class_(
-    "DanfossEco2", climate.Climate, ble_client.BLEClientNode, cg.PollingComponent
+    "Device", climate.Climate, ble_client.BLEClientNode, cg.PollingComponent
 )
 
 CONFIG_SCHEMA = (

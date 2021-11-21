@@ -5,8 +5,10 @@
 
 namespace esphome
 {
-  namespace eco2
+  namespace danfoss_eco
   {
+    static const char *const TAG = "danfoss_eco";
+
     enum CurrentQuery
     {
       NONE,
@@ -94,5 +96,5 @@ namespace esphome
       CurrentQuery current_query_;
     };
 
-  } // namespace eco2
+  } // namespace danfoss_eco
 } // namespace esphome

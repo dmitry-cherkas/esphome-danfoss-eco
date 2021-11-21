@@ -7,16 +7,14 @@
 
 namespace esphome
 {
-  namespace eco2
+  namespace danfoss_eco
   {
-
-    static const char *const TAG = "eco2";
 
     using namespace esphome::climate;
 
-    void DanfossEco2::dump_config() { LOG_CLIMATE("", "Danfoss Eco eTRV", this); }
+    void Device::dump_config() { LOG_CLIMATE(TAG, "Danfoss Eco eTRV", this); }
 
-    void DanfossEco2::setup()
+    void Device::setup()
     {
       // 1. Initialize device state
       this->codec_ = make_unique<AnovaCodec>(); // TODO remove
@@ -36,13 +34,13 @@ namespace esphome
       }
     }
 
-    void DanfossEco2::loop() {}
+    void Device::loop() {}
 
-    void DanfossEco2::control(const ClimateCall &call)
+    void Device::control(const ClimateCall &call)
     {
     }
 
-    void DanfossEco2::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
+    void Device::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
     {
       switch (event)
       {
@@ -59,7 +57,7 @@ namespace esphome
       }
       case ESP_GATTC_SEARCH_CMPL_EVT:
       {
-        auto pinChr = this->parent_->get_characteristic(ECO2_SERVICE_SETTINGS, ECO2_CHARACTERISTIC_PIN);
+        auto pinChr = this->parent_->get_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_PIN);
         if (pinChr == nullptr)
         {
           ESP_LOGW(TAG, "[%s] No settings service found at device, not a Danfoss Eco?", this->get_name().c_str());
@@ -68,7 +66,7 @@ namespace esphome
 
         this->pin_char_handle_ = pinChr->handle;
         auto pinStatus =
-            esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, pinChr->handle, sizeof(eco2Pin), eco2Pin, ESP_GATT_WRITE_TYPE_RSP, ESP_GATT_AUTH_REQ_NONE);
+            esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, pinChr->handle, sizeof(pinCode), pinCode, ESP_GATT_WRITE_TYPE_RSP, ESP_GATT_AUTH_REQ_NONE);
         if (pinStatus)
           ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), pinStatus);
         else
@@ -82,7 +80,7 @@ namespace esphome
         {
           ESP_LOGW(TAG, "[%s] Reading Name characteristic", this->get_name().c_str());
 
-          auto nameChr = this->parent_->get_characteristic(ECO2_SERVICE_SETTINGS, ECO2_CHARACTERISTIC_NAME);
+          auto nameChr = this->parent_->get_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
           if (nameChr == nullptr)
           {
             ESP_LOGW(TAG, "[%s] No name characteristic found at device, not a Danfoss Eco?", this->get_name().c_str());
@@ -128,7 +126,7 @@ namespace esphome
       }
     }
 
-    void DanfossEco2::parse_data_(uint8_t *value, uint16_t value_len)
+    void Device::parse_data_(uint8_t *value, uint16_t value_len)
     {
       std::string s = hexencode(value, value_len);
       ESP_LOGI(TAG, "[%s] raw value: %s", this->parent_->address_str().c_str(), s.c_str());
@@ -155,7 +153,7 @@ namespace esphome
       }
     }
 
-    void DanfossEco2::update()
+    void Device::update()
     { /*
       // Poller is asking us for sensor data, initiate the connection
       if (this->node_state != espbt::ClientState::ESTABLISHED)
@@ -172,12 +170,12 @@ namespace esphome
       }*/
     }
 
-    void DanfossEco2::set_secret_key(const char *str)
+    void Device::set_secret_key(const char *str)
     {
       this->secret_ = this->codec_->bytesFromHexStr(str, 32);
     }
 
-  } // namespace eco2
+  } // namespace danfoss_eco
 } // namespace esphome
 
 #endif

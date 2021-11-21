@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/components/eco2_climate",
+                "${workspaceFolder}/components/danfoss_eco",
                 "${workspaceFolder}/../esphome",
                 "/home/dmitry/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                 "/home/dmitry/.platformio/packages/framework-arduinoespressif32/tools/sdk/include/config",
