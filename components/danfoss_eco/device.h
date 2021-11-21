@@ -23,7 +23,7 @@ namespace esphome
     static auto CHARACTERISTIC_PIN = espbt::ESPBTUUID::from_raw("10020001-2749-0001-0000-00805f9b042f");
     static auto CHARACTERISTIC_NAME = espbt::ESPBTUUID::from_raw("10020006-2749-0001-0000-00805f9b042f");
 
-    static uint8_t pinCode[] = {0x30, 0x30, 0x30, 0x30};
+    static uint8_t pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
     class Device : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {
@@ -50,12 +50,14 @@ namespace esphome
 
     protected:
       void control(const climate::ClimateCall &call) override;
+      void write_pin();
+      void request_name();
       void parse_data_(uint8_t *value, uint16_t value_len);
 
       std::unique_ptr<DeviceState> state_;
 
       uint16_t name_char_handle_;
-      uint16_t pin_char_handle_;
+      uint16_t pin_chr_handle_;
       uint8_t *secret_;
     };
 

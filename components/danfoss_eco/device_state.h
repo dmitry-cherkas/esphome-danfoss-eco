@@ -10,12 +10,14 @@ namespace esphome
         class DeviceState
         {
         public:
-            bool has_target_temp() { return this->has_target_temp_; }
+            bool is_connected() { return this->connected_; }
+            bool set_connected(bool state) { return this->connected_ = state; }
+            
             bool has_pending_state_request() { return this->has_pending_state_request_; }
             void set_pending_state_request(bool val) { this->has_pending_state_request_ = val; }
 
         protected:
-            bool has_target_temp_;
+            bool connected_;
             bool has_pending_state_request_;
         };
     }
