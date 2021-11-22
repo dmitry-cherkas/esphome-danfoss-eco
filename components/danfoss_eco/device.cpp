@@ -25,6 +25,15 @@ namespace esphome
         this->mark_failed();
         return;
       }
+
+      // pretend, we have already discovered the device
+      uint64_t addr = this->parent()->address;
+      this->parent()->remote_bda[0] = (addr >> 40) & 0xFF;
+      this->parent()->remote_bda[1] = (addr >> 32) & 0xFF;
+      this->parent()->remote_bda[2] = (addr >> 24) & 0xFF;
+      this->parent()->remote_bda[3] = (addr >> 16) & 0xFF;
+      this->parent()->remote_bda[4] = (addr >> 8) & 0xFF;
+      this->parent()->remote_bda[5] = (addr >> 0) & 0xFF;
     }
 
     void Device::loop() {}
@@ -50,25 +59,37 @@ namespace esphome
     {
       switch (event)
       {
+      case ESP_GATTC_CONNECT_EVT:
+        ESP_LOGI(TAG, "[%s] connect, conn_id=%d", this->parent()->address_str().c_str(), param->connect.conn_id);
+        break;
+
       case ESP_GATTC_OPEN_EVT:
         if (param->open.status == ESP_GATT_OK)
-        {
-          ESP_LOGI(TAG, "[%s] connected", this->parent()->address_str().c_str());
-        }
+          ESP_LOGI(TAG, "[%s] open, conn_id=%d", this->parent()->address_str().c_str(), param->open.conn_id);
+        else
+          ESP_LOGW(TAG, "[%s] failed to open, conn_id=%d, status=%02x", this->parent()->address_str().c_str(), param->open.conn_id, param->open.status);
+        break;
+
+      case ESP_GATTC_CLOSE_EVT:
+        if (param->close.status == ESP_GATT_OK)
+          ESP_LOGI(TAG, "[%s] close, conn_id=%d, reason=%d", this->parent()->address_str().c_str(), param->close.conn_id, param->close.reason);
+        else
+          ESP_LOGW(TAG, "[%s] failed to close, conn_id=%d, status=%02x", this->parent()->address_str().c_str(), param->close.conn_id, param->close.status);
         break;
 
       case ESP_GATTC_DISCONNECT_EVT:
-        ESP_LOGI(TAG, "[%s] disconnected", this->parent()->address_str().c_str());
+        ESP_LOGI(TAG, "[%s] disconnect, conn_id=%d, reason=%d", this->parent()->address_str().c_str(), param->disconnect.conn_id, (int)param->disconnect.reason);
         break;
 
       case ESP_GATTC_SEARCH_CMPL_EVT:
+        ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
         this->write_pin();
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
         if (param->write.status != ESP_GATT_OK)
         {
-          ESP_LOGW(TAG, "[%s] failed to write characteristic: handle %02x, status=%d", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
+          ESP_LOGW(TAG, "[%s] failed to write characteristic: handle %02x, status=%02x", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
         }
         else if (param->write.handle == this->pin_chr_handle_)
         { // PIN OK
@@ -85,7 +106,7 @@ namespace esphome
       case ESP_GATTC_READ_CHAR_EVT:
         if (param->read.status != ESP_GATT_OK)
         {
-          ESP_LOGW(TAG, "[%s] failed to read characteristic: handle %02x, status=%d", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
+          ESP_LOGW(TAG, "[%s] failed to read characteristic: handle %02x, status=%02x", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
           break;
         }
         this->status_clear_warning();
@@ -94,7 +115,7 @@ namespace esphome
         {
           uint8_t *name = this->decrypt(param->read.value, param->read.value_len);
           ESP_LOGI(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
-          std::string name_str((char*)name);
+          std::string name_str((char *)name);
           this->set_name(name_str);
         }
         else if (param->read.handle == this->battery_chr_handle_)
@@ -179,6 +200,7 @@ namespace esphome
         break;
 
       default:
+        ESP_LOGD(TAG, "[%s] unhandled event: event=%d, gattc_if=%d", this->parent()->address_str().c_str(), (int)event, gattc_if);
         break;
       }
     }
@@ -202,7 +224,7 @@ namespace esphome
                                              ESP_GATT_WRITE_TYPE_RSP,
                                              ESP_GATT_AUTH_REQ_NONE);
       if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent()->address_str().c_str(), status);
+        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%01x", this->parent()->address_str().c_str(), status);
     }
 
     uint16_t Device::read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid)
@@ -221,7 +243,7 @@ namespace esphome
                                             chr->handle,
                                             ESP_GATT_AUTH_REQ_NONE);
       if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%d", this->parent()->address_str().c_str(), status);
+        ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%01x", this->parent()->address_str().c_str(), status);
 
       // increment request counter to keep track of pending requests
       this->request_counter_++;
@@ -266,7 +288,9 @@ namespace esphome
           ESP_LOGD(TAG, "[%s] received update request, re-enabling ble_client", this->parent()->address_str().c_str());
           parent()->set_enabled(true);
         }
-        parent()->connect();
+        // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
+        esp_ble_gap_stop_scanning();
+        this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause client to attempt connect() from its loop()
       }
     }
 
