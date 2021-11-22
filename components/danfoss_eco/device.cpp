@@ -116,7 +116,7 @@ namespace esphome
           uint8_t *name = this->decrypt(param->read.value, param->read.value_len);
           ESP_LOGI(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
           std::string name_str((char *)name);
-          this->set_name(name_str);
+          // this->set_name(name_str); TODO - this is too late
         }
         else if (param->read.handle == this->battery_chr_handle_)
         {
