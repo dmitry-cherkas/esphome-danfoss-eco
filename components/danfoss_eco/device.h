@@ -6,7 +6,6 @@
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/climate/climate.h"
 
-#include "device_state.h"
 #include "helpers.h"
 
 #ifdef USE_ESP32
@@ -63,8 +62,6 @@ namespace esphome
       uint16_t read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid);
       uint8_t *decrypt(uint8_t *value, uint16_t value_len);
       climate::ClimateMode from_device_mode(DeviceMode);
-
-      std::unique_ptr<DeviceState> state_;
 
       uint8_t *secret_;
       uint8_t *pin_code_;

@@ -18,10 +18,7 @@ namespace esphome
 
     void Device::setup()
     {
-      // 1. Initialize device state
-      this->state_ = make_unique<DeviceState>();
-
-      // 2. Setup encryption key
+      // Setup encryption key
       auto status = xxtea_setup_key(this->secret_, 16);
       if (status != XXTEA_STATUS_SUCCESS)
       {
