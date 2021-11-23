@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/components/sensor/sensor.h"
 #include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/climate/climate.h"
@@ -45,6 +46,7 @@ namespace esphome
 
       void set_secret_key(const char *);
       void set_pin_code(const std::string &);
+      void set_battery_level(sensor::Sensor *battery_level) { battery_level_ = battery_level; }
 
     protected:
       void control(const climate::ClimateCall &call) override;
@@ -56,6 +58,8 @@ namespace esphome
 
       uint8_t *secret_;
       uint8_t *pin_code_;
+
+      sensor::Sensor *battery_level_{nullptr};
 
       uint16_t pin_chr_handle_;
       uint16_t name_chr_handle_;

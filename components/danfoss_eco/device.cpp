@@ -10,7 +10,11 @@ namespace esphome
 
     using namespace esphome::climate;
 
-    void Device::dump_config() { LOG_CLIMATE(TAG, "Danfoss Eco eTRV", this); }
+    void Device::dump_config()
+    {
+      LOG_CLIMATE(TAG, "Danfoss Eco eTRV", this);
+      LOG_SENSOR(TAG, "Battery Level", this->battery_level_);
+    }
 
     void Device::setup()
     {
@@ -122,6 +126,7 @@ namespace esphome
         {
           uint8_t battery_level = param->read.value[0];
           ESP_LOGI(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
+          this->battery_level_->publish_state(battery_level);
         }
         else if (param->read.handle == this->temperature_chr_handle_)
         {

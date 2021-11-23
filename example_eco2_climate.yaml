@@ -35,11 +35,16 @@ captive_portal:
 external_components:
   - source: components
 
+# it's not possible to disable the tracker, but at least we won't consume extra energy from the devices during scans
 esp32_ble_tracker:
+  scan_parameters:
+    active: false
 
 ble_client:
   - mac_address: 00:04:2f:40:57:b0
     id: room_eco2
+
+sensor:
 
 climate:
   - platform: danfoss_eco
@@ -47,3 +52,6 @@ climate:
     ble_client_id: room_eco2
     pin_code: "0000"
     secret_key: deadbeefcafebabedeadbeefcafebabe
+    battery_level:
+      name: "Battery Level"
+    update_interval: 60s
