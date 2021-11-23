@@ -71,14 +71,14 @@ namespace esphome
         if (param->open.status == ESP_GATT_OK)
           ESP_LOGI(TAG, "[%s] open, conn_id=%d", this->parent()->address_str().c_str(), param->open.conn_id);
         else
-          ESP_LOGW(TAG, "[%s] failed to open, conn_id=%d, status=%02x", this->parent()->address_str().c_str(), param->open.conn_id, param->open.status);
+          ESP_LOGW(TAG, "[%s] failed to open, conn_id=%d, status=%#04x", this->parent()->address_str().c_str(), param->open.conn_id, param->open.status);
         break;
 
       case ESP_GATTC_CLOSE_EVT:
         if (param->close.status == ESP_GATT_OK)
           ESP_LOGI(TAG, "[%s] close, conn_id=%d, reason=%d", this->parent()->address_str().c_str(), param->close.conn_id, param->close.reason);
         else
-          ESP_LOGW(TAG, "[%s] failed to close, conn_id=%d, status=%02x", this->parent()->address_str().c_str(), param->close.conn_id, param->close.status);
+          ESP_LOGW(TAG, "[%s] failed to close, conn_id=%d, status=%#04x", this->parent()->address_str().c_str(), param->close.conn_id, param->close.status);
         break;
 
       case ESP_GATTC_DISCONNECT_EVT:
@@ -93,7 +93,7 @@ namespace esphome
       case ESP_GATTC_WRITE_CHAR_EVT:
         if (param->write.status != ESP_GATT_OK)
         {
-          ESP_LOGW(TAG, "[%s] failed to write characteristic: handle %02x, status=%02x", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
+          ESP_LOGW(TAG, "[%s] failed to write characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
         }
         else if (param->write.handle == this->pin_chr_handle_)
         { // PIN OK
@@ -110,7 +110,7 @@ namespace esphome
       case ESP_GATTC_READ_CHAR_EVT:
         if (param->read.status != ESP_GATT_OK)
         {
-          ESP_LOGW(TAG, "[%s] failed to read characteristic: handle %02x, status=%02x", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
+          ESP_LOGW(TAG, "[%s] failed to read characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
           break;
         }
         this->status_clear_warning();
@@ -135,7 +135,7 @@ namespace esphome
           float room_temperature = temperatures[1] / 2.0f;
           ESP_LOGI(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
           temperature_->publish_state(room_temperature);
-          
+
           // apply read configuration to the component
           this->target_temperature = set_point_temperature;
           this->current_temperature = room_temperature;
