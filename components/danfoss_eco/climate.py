@@ -15,7 +15,9 @@ from esphome.const import (
 )
 
 CODEOWNERS = ["@dmitry-cherkas"]
-DEPENDENCIES = ["ble_client", "sensor"]
+DEPENDENCIES = ["ble_client"]
+# load zero-configuration dependencies automatically
+AUTO_LOAD = ["sensor", "esp32_ble_tracker"]
 
 CONF_PIN_CODE = 'pin_code'
 CONF_SECRET_KEY = 'secret_key'
