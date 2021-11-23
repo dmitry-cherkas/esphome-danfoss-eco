@@ -15,7 +15,7 @@ from esphome.const import (
 )
 
 CODEOWNERS = ["@dmitry-cherkas"]
-DEPENDENCIES = ["ble_client"]
+DEPENDENCIES = ["ble_client", "sensor"]
 
 CONF_PIN_CODE = 'pin_code'
 CONF_SECRET_KEY = 'secret_key'
