@@ -32,6 +32,14 @@ namespace esphome
 
     static uint8_t default_pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
+    enum DeviceMode : uint8_t
+    {
+      MANUAL = 0,
+      SCHEDULED = 1,
+      VACATION = 3,
+      HOLD = 5 // TODO: what is the meaning of this mode?
+    };
+
     class Device : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {
     public:
@@ -54,6 +62,7 @@ namespace esphome
       void write_pin();
       uint16_t read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid);
       uint8_t *decrypt(uint8_t *value, uint16_t value_len);
+      climate::ClimateMode from_device_mode(DeviceMode);
 
       std::unique_ptr<DeviceState> state_;
 

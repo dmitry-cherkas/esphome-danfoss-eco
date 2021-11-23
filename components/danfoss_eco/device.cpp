@@ -44,6 +44,21 @@ namespace esphome
 
     void Device::control(const ClimateCall &call)
     {
+      if (call.get_target_temperature().has_value())
+      {
+        // this is new temprature we want to set
+        float new_target_temperature = *call.get_target_temperature();
+
+        // TODO make sure we are connected to eTRV
+        // TODO prepare write command to set the target temperature
+        /*auto pkt = this->codec_->get_set_target_temp_request(*call.get_target_temperature());
+        auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, this->char_handle_,
+                                               pkt->length, pkt->data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
+        if (status)
+          ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), status);*/
+      }
+
+      // TODO add mode switch (AUTO -> HEAT) - toggle between schedule and manual modes
     }
 
     ClimateTraits Device::traits()
@@ -51,11 +66,11 @@ namespace esphome
       auto traits = ClimateTraits();
       traits.set_supports_current_temperature(true);
 
-      std::set<ClimateMode> modes({ClimateMode::CLIMATE_MODE_OFF, ClimateMode::CLIMATE_MODE_HEAT});
-      traits.set_supported_modes(modes);
-      traits.set_visual_min_temperature(5.0);
-      traits.set_visual_max_temperature(50.0);
+      traits.set_supported_modes(std::set<ClimateMode>({ClimateMode::CLIMATE_MODE_HEAT, ClimateMode::CLIMATE_MODE_AUTO}));
       traits.set_visual_temperature_step(0.5);
+
+      traits.set_supports_current_temperature(true); // supports reporting current temperature
+      traits.set_supports_action(true);              // supports reporting current action
       return traits;
     }
 
@@ -138,6 +153,7 @@ namespace esphome
           temperature_->publish_state(room_temperature);
 
           // apply read configuration to the component
+          this->action = (room_temperature > set_point_temperature) ? ClimateAction::CLIMATE_ACTION_IDLE : ClimateAction::CLIMATE_ACTION_HEATING;
           this->target_temperature = set_point_temperature;
           this->current_temperature = room_temperature;
           this->publish_state();
@@ -180,13 +196,17 @@ namespace esphome
 
           float frost_protection_temperature = settings[3] / 2.0f;
           ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", this->parent()->address_str().c_str(), frost_protection_temperature);
+          // TODO add frost_protection_temperature sensor (OR CONTROL?)
 
-          uint8_t schedule_mode = settings[4];
+          DeviceMode schedule_mode = (DeviceMode)settings[4];
           ESP_LOGD(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
+          this->mode = this->from_device_mode(schedule_mode);
 
           float vacation_temperature = settings[5] / 2.0f;
           ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
+          // TODO add vacation_temperature sensor (OR CONTROL?)
 
+          // vacation mode can be enabled directly with schedule_mode, or planned with below dates
           int vacation_from = parse_int(settings, 6);
           ESP_LOGD(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
 
@@ -209,6 +229,26 @@ namespace esphome
       default:
         ESP_LOGD(TAG, "[%s] unhandled event: event=%d, gattc_if=%d", this->parent()->address_str().c_str(), (int)event, gattc_if);
         break;
+      }
+    }
+
+    climate::ClimateMode Device::from_device_mode(DeviceMode schedule_mode)
+    {
+      switch (schedule_mode)
+      {
+      case DeviceMode::MANUAL:
+        return ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
+
+      case DeviceMode::VACATION:
+      case DeviceMode::SCHEDULED:
+        return ClimateMode::CLIMATE_MODE_AUTO;
+
+      case DeviceMode::HOLD:
+        return ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
+
+      default:
+        ESP_LOGW(TAG, "[%s] unexpected schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
+        return ClimateMode::CLIMATE_MODE_HEAT; // unknown
       }
     }
 
