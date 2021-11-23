@@ -69,20 +69,20 @@ namespace esphome
 
       case ESP_GATTC_OPEN_EVT:
         if (param->open.status == ESP_GATT_OK)
-          ESP_LOGI(TAG, "[%s] open, conn_id=%d", this->parent()->address_str().c_str(), param->open.conn_id);
+          ESP_LOGD(TAG, "[%s] open, conn_id=%d", this->parent()->address_str().c_str(), param->open.conn_id);
         else
           ESP_LOGW(TAG, "[%s] failed to open, conn_id=%d, status=%#04x", this->parent()->address_str().c_str(), param->open.conn_id, param->open.status);
         break;
 
       case ESP_GATTC_CLOSE_EVT:
         if (param->close.status == ESP_GATT_OK)
-          ESP_LOGI(TAG, "[%s] close, conn_id=%d, reason=%d", this->parent()->address_str().c_str(), param->close.conn_id, param->close.reason);
+          ESP_LOGD(TAG, "[%s] close, conn_id=%d, reason=%d", this->parent()->address_str().c_str(), param->close.conn_id, param->close.reason);
         else
           ESP_LOGW(TAG, "[%s] failed to close, conn_id=%d, status=%#04x", this->parent()->address_str().c_str(), param->close.conn_id, param->close.status);
         break;
 
       case ESP_GATTC_DISCONNECT_EVT:
-        ESP_LOGI(TAG, "[%s] disconnect, conn_id=%d, reason=%d", this->parent()->address_str().c_str(), param->disconnect.conn_id, (int)param->disconnect.reason);
+        ESP_LOGI(TAG, "[%s] disconnect, conn_id=%d, reason=%#04x", this->parent()->address_str().c_str(), param->disconnect.conn_id, (int)param->disconnect.reason);
         break;
 
       case ESP_GATTC_SEARCH_CMPL_EVT:
@@ -97,6 +97,7 @@ namespace esphome
         }
         else if (param->write.handle == this->pin_chr_handle_)
         { // PIN OK
+          ESP_LOGI(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
           this->node_state = espbt::ClientState::ESTABLISHED;
 
           this->name_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
@@ -118,14 +119,14 @@ namespace esphome
         if (param->read.handle == this->name_chr_handle_)
         {
           uint8_t *name = this->decrypt(param->read.value, param->read.value_len);
-          ESP_LOGI(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
+          ESP_LOGD(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
           std::string name_str((char *)name);
           // this->set_name(name_str); TODO - this is too late
         }
         else if (param->read.handle == this->battery_chr_handle_)
         {
           uint8_t battery_level = param->read.value[0];
-          ESP_LOGI(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
+          ESP_LOGD(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
           this->battery_level_->publish_state(battery_level);
         }
         else if (param->read.handle == this->temperature_chr_handle_)
@@ -133,7 +134,7 @@ namespace esphome
           uint8_t *temperatures = this->decrypt(param->read.value, param->read.value_len);
           float set_point_temperature = temperatures[0] / 2.0f;
           float room_temperature = temperatures[1] / 2.0f;
-          ESP_LOGI(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
+          ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
           temperature_->publish_state(room_temperature);
 
           // apply read configuration to the component
@@ -146,7 +147,7 @@ namespace esphome
           uint8_t *current_time = this->decrypt(param->read.value, param->read.value_len);
           int local_time = parse_int(current_time, 0);
           int time_offset = parse_int(current_time, 4);
-          ESP_LOGI(TAG, "[%s] local_time: %d, time_offset: %d", this->parent()->address_str().c_str(), local_time, time_offset);
+          ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", this->parent()->address_str().c_str(), local_time, time_offset);
         }
         else if (param->read.handle == this->settings_chr_handle_)
         {
@@ -154,43 +155,43 @@ namespace esphome
           uint8_t config_bits = settings[0];
 
           bool adaptable_regulation = parse_bit(config_bits, 0);
-          ESP_LOGI(TAG, "[%s] adaptable_regulation: %d", this->parent()->address_str().c_str(), adaptable_regulation);
+          ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", this->parent()->address_str().c_str(), adaptable_regulation);
 
           bool vertical_intallation = parse_bit(config_bits, 2);
-          ESP_LOGI(TAG, "[%s] vertical_intallation: %d", this->parent()->address_str().c_str(), vertical_intallation);
+          ESP_LOGD(TAG, "[%s] vertical_intallation: %d", this->parent()->address_str().c_str(), vertical_intallation);
 
           bool display_flip = parse_bit(config_bits, 3);
-          ESP_LOGI(TAG, "[%s] display_flip: %d", this->parent()->address_str().c_str(), display_flip);
+          ESP_LOGD(TAG, "[%s] display_flip: %d", this->parent()->address_str().c_str(), display_flip);
 
           bool slow_regulation = parse_bit(config_bits, 4);
-          ESP_LOGI(TAG, "[%s] slow_regulation: %d", this->parent()->address_str().c_str(), slow_regulation);
+          ESP_LOGD(TAG, "[%s] slow_regulation: %d", this->parent()->address_str().c_str(), slow_regulation);
 
           bool valve_installed = parse_bit(config_bits, 6);
-          ESP_LOGI(TAG, "[%s] valve_installed: %d", this->parent()->address_str().c_str(), valve_installed);
+          ESP_LOGD(TAG, "[%s] valve_installed: %d", this->parent()->address_str().c_str(), valve_installed);
 
           bool lock_control = parse_bit(config_bits, 7);
-          ESP_LOGI(TAG, "[%s] lock_control: %d", this->parent()->address_str().c_str(), lock_control);
+          ESP_LOGD(TAG, "[%s] lock_control: %d", this->parent()->address_str().c_str(), lock_control);
 
           float temperature_min = settings[1] / 2.0f;
-          ESP_LOGI(TAG, "[%s] temperature_min: %2.1f°C", this->parent()->address_str().c_str(), temperature_min);
+          ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", this->parent()->address_str().c_str(), temperature_min);
 
           float temperature_max = settings[2] / 2.0f;
-          ESP_LOGI(TAG, "[%s] temperature_max: %2.1f°C", this->parent()->address_str().c_str(), temperature_max);
+          ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", this->parent()->address_str().c_str(), temperature_max);
 
           float frost_protection_temperature = settings[3] / 2.0f;
-          ESP_LOGI(TAG, "[%s] frost_protection_temperature: %2.1f°C", this->parent()->address_str().c_str(), frost_protection_temperature);
+          ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", this->parent()->address_str().c_str(), frost_protection_temperature);
 
           uint8_t schedule_mode = settings[4];
-          ESP_LOGI(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
+          ESP_LOGD(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
 
           float vacation_temperature = settings[5] / 2.0f;
-          ESP_LOGI(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
+          ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
 
           int vacation_from = parse_int(settings, 6);
-          ESP_LOGI(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
+          ESP_LOGD(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
 
           int vacation_to = parse_int(settings, 10);
-          ESP_LOGI(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
+          ESP_LOGD(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
 
           // apply read configuration to the component
           this->set_visual_min_temperature_override(temperature_min);
