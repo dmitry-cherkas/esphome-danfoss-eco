@@ -54,4 +54,6 @@ climate:
     secret_key: deadbeefcafebabedeadbeefcafebabe
     battery_level:
       name: "Battery Level"
+    temperature:
+      name: "Temperature"
     update_interval: 60s

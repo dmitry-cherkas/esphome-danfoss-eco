@@ -134,7 +134,8 @@ namespace esphome
           float set_point_temperature = temperatures[0] / 2.0f;
           float room_temperature = temperatures[1] / 2.0f;
           ESP_LOGI(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
-
+          temperature_->publish_state(room_temperature);
+          
           // apply read configuration to the component
           this->target_temperature = set_point_temperature;
           this->current_temperature = room_temperature;

@@ -8,7 +8,10 @@ from esphome.const import (
     CONF_BATTERY_LEVEL,
     UNIT_PERCENT,
     ENTITY_CATEGORY_DIAGNOSTIC,
-    STATE_CLASS_MEASUREMENT
+    STATE_CLASS_MEASUREMENT,
+    CONF_TEMPERATURE,
+    UNIT_CELSIUS,
+    DEVICE_CLASS_TEMPERATURE
 )
 
 CODEOWNERS = ["@dmitry-cherkas"]
@@ -40,6 +43,12 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_BATTERY,
                 state_class=STATE_CLASS_MEASUREMENT,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC
+            ),
+            cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                accuracy_decimals=1,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
             )
         }
     )
@@ -57,3 +66,6 @@ async def to_code(config):
     if CONF_BATTERY_LEVEL in config:
         sens = await sensor.new_sensor(config[CONF_BATTERY_LEVEL])
         cg.add(var.set_battery_level(sens))
+    if CONF_TEMPERATURE in config:
+        sens = await sensor.new_sensor(config[CONF_TEMPERATURE])
+        cg.add(var.set_temperature(sens))

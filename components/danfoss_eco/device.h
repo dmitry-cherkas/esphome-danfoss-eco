@@ -47,6 +47,7 @@ namespace esphome
       void set_secret_key(const char *);
       void set_pin_code(const std::string &);
       void set_battery_level(sensor::Sensor *battery_level) { battery_level_ = battery_level; }
+      void set_temperature(sensor::Sensor *temperature) { temperature_ = temperature; }
 
     protected:
       void control(const climate::ClimateCall &call) override;
@@ -60,6 +61,7 @@ namespace esphome
       uint8_t *pin_code_;
 
       sensor::Sensor *battery_level_{nullptr};
+      sensor::Sensor *temperature_{nullptr};
 
       uint16_t pin_chr_handle_;
       uint16_t name_chr_handle_;
