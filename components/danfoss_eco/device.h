@@ -72,7 +72,6 @@ namespace esphome
       climate::ClimateMode from_device_mode(DeviceMode);
 
       void connect();
-      void resolve_handle(DeviceProperty *property);
       void read_request(DeviceProperty *);
       void write_request(DeviceProperty *, uint8_t *value);
 

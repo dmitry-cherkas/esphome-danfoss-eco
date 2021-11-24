@@ -124,11 +124,12 @@ namespace esphome
         break;
 
       case ESP_GATTC_SEARCH_CMPL_EVT:
-        this->resolve_handle(this->p_pin);
-        this->resolve_handle(this->p_name);
-        this->resolve_handle(this->p_battery);
-        this->resolve_handle(this->p_temperature);
-        this->resolve_handle(this->p_settings);
+        this->p_pin->init_handle(this->parent());
+        this->p_name->init_handle(this->parent());
+        this->p_battery->init_handle(this->parent());
+        this->p_temperature->init_handle(this->parent());
+        this->p_settings->init_handle(this->parent());
+
         ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
         this->write_request(this->p_pin, this->pin_code_);
         break;
@@ -348,20 +349,6 @@ namespace esphome
         ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%01x", this->parent()->address_str().c_str(), status);
       else
         this->request_counter_++;
-    }
-
-    void Device::resolve_handle(DeviceProperty *property)
-    {
-      ESP_LOGD(TAG, "[%s] resolving handler for service=%s, characteristic=%s", this->parent()->address_str().c_str(), property->service_uuid.to_string().c_str(), property->characteristic_uuid.to_string().c_str());
-      auto chr = this->parent()->get_characteristic(property->service_uuid, property->characteristic_uuid);
-      if (chr == nullptr)
-      {
-        ESP_LOGW(TAG, "[%s] characteristic uuid=%s not found", this->parent()->address_str().c_str(), property->characteristic_uuid.to_string().c_str());
-        this->status_set_warning();
-        return;
-      }
-
-      property->handle = chr->handle;
     }
 
     void Device::write_request(DeviceProperty *property, uint8_t *value)

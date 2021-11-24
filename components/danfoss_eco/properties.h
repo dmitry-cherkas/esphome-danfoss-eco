@@ -1,8 +1,7 @@
 #pragma once
 
+#include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
-
-#ifdef USE_ESP32
 
 namespace esphome
 {
@@ -19,9 +18,12 @@ namespace esphome
                 this->characteristic_uuid = c_uuid;
             }
 
+            bool init_handle(esphome::ble_client::BLEClient *);
+            uint16_t handle;
+
+        private:
             espbt::ESPBTUUID service_uuid;
             espbt::ESPBTUUID characteristic_uuid;
-            uint16_t handle;
         };
 
         enum class CommandType
@@ -43,5 +45,3 @@ namespace esphome
 
     } // namespace danfoss_eco
 } // namespace esphome
-
-#endif // USE_ESP32
