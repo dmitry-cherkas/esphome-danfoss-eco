@@ -37,7 +37,33 @@ namespace esphome
       this->parent()->remote_bda[5] = (addr >> 0) & 0xFF;
     }
 
-    void Device::loop() {}
+    void Device::loop()
+    {
+      if (this->node_state != espbt::ClientState::ESTABLISHED)
+      {
+        return;
+      }
+
+      Command *cmd = this->commands_.pop();
+      while (cmd != nullptr)
+      {
+        if (cmd->type == CommandType::READ)
+          read_request(cmd->property);
+        else
+          write_request(cmd->property, cmd->value);
+
+        delete cmd;
+        cmd = this->commands_.pop();
+      }
+
+      // once we are done with pending commands - check to see if there are any pending requests
+      if (this->request_counter_ == 0)
+      {
+        // if there are no pending requests - we are done with the device for now, disconnecting
+        this->parent()->set_enabled(false);
+        this->node_state = espbt::ClientState::IDLE;
+      }
+    }
 
     void Device::control(const ClimateCall &call)
     {
@@ -98,128 +124,41 @@ namespace esphome
         break;
 
       case ESP_GATTC_SEARCH_CMPL_EVT:
+        this->resolve_handle(this->p_pin);
+        this->resolve_handle(this->p_name);
+        this->resolve_handle(this->p_battery);
+        this->resolve_handle(this->p_temperature);
+        this->resolve_handle(this->p_settings);
         ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
-        this->write_pin();
+        this->write_request(this->p_pin, this->pin_code_);
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
+        this->request_counter_--;
         if (param->write.status != ESP_GATT_OK)
-        {
           ESP_LOGW(TAG, "[%s] failed to write characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
-        }
-        else if (param->write.handle == this->pin_chr_handle_)
-        { // PIN OK
+        else if (param->write.handle == this->p_pin->handle)
+        {
           ESP_LOGI(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
           this->node_state = espbt::ClientState::ESTABLISHED;
-
-          this->name_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
-          this->battery_chr_handle_ = this->read_characteristic(SERVICE_BATTERY, CHARACTERISTIC_BATTERY);
-          this->temperature_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE);
-          this->current_time_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_CURRENT_TIME);
-          this->settings_chr_handle_ = this->read_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS);
+        }
+        else
+        { // write request ACK
+          this->on_write(param->write);
         }
         break;
 
       case ESP_GATTC_READ_CHAR_EVT:
+        this->request_counter_--;
         if (param->read.status != ESP_GATT_OK)
         {
           ESP_LOGW(TAG, "[%s] failed to read characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
           break;
         }
-        this->status_clear_warning();
-
-        if (param->read.handle == this->name_chr_handle_)
+        else
         {
-          uint8_t *name = this->decrypt(param->read.value, param->read.value_len);
-          ESP_LOGD(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
-          std::string name_str((char *)name);
-          // this->set_name(name_str); TODO - this is too late
-        }
-        else if (param->read.handle == this->battery_chr_handle_)
-        {
-          uint8_t battery_level = param->read.value[0];
-          ESP_LOGD(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
-          this->battery_level_->publish_state(battery_level);
-        }
-        else if (param->read.handle == this->temperature_chr_handle_)
-        {
-          uint8_t *temperatures = this->decrypt(param->read.value, param->read.value_len);
-          float set_point_temperature = temperatures[0] / 2.0f;
-          float room_temperature = temperatures[1] / 2.0f;
-          ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
-          temperature_->publish_state(room_temperature);
-
-          // apply read configuration to the component
-          this->action = (room_temperature > set_point_temperature) ? ClimateAction::CLIMATE_ACTION_IDLE : ClimateAction::CLIMATE_ACTION_HEATING;
-          this->target_temperature = set_point_temperature;
-          this->current_temperature = room_temperature;
-          this->publish_state();
-        }
-        else if (param->read.handle == this->current_time_chr_handle_)
-        {
-          uint8_t *current_time = this->decrypt(param->read.value, param->read.value_len);
-          int local_time = parse_int(current_time, 0);
-          int time_offset = parse_int(current_time, 4);
-          ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", this->parent()->address_str().c_str(), local_time, time_offset);
-        }
-        else if (param->read.handle == this->settings_chr_handle_)
-        {
-          uint8_t *settings = this->decrypt(param->read.value, param->read.value_len);
-          uint8_t config_bits = settings[0];
-
-          bool adaptable_regulation = parse_bit(config_bits, 0);
-          ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", this->parent()->address_str().c_str(), adaptable_regulation);
-
-          bool vertical_intallation = parse_bit(config_bits, 2);
-          ESP_LOGD(TAG, "[%s] vertical_intallation: %d", this->parent()->address_str().c_str(), vertical_intallation);
-
-          bool display_flip = parse_bit(config_bits, 3);
-          ESP_LOGD(TAG, "[%s] display_flip: %d", this->parent()->address_str().c_str(), display_flip);
-
-          bool slow_regulation = parse_bit(config_bits, 4);
-          ESP_LOGD(TAG, "[%s] slow_regulation: %d", this->parent()->address_str().c_str(), slow_regulation);
-
-          bool valve_installed = parse_bit(config_bits, 6);
-          ESP_LOGD(TAG, "[%s] valve_installed: %d", this->parent()->address_str().c_str(), valve_installed);
-
-          bool lock_control = parse_bit(config_bits, 7);
-          ESP_LOGD(TAG, "[%s] lock_control: %d", this->parent()->address_str().c_str(), lock_control);
-
-          float temperature_min = settings[1] / 2.0f;
-          ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", this->parent()->address_str().c_str(), temperature_min);
-
-          float temperature_max = settings[2] / 2.0f;
-          ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", this->parent()->address_str().c_str(), temperature_max);
-
-          float frost_protection_temperature = settings[3] / 2.0f;
-          ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", this->parent()->address_str().c_str(), frost_protection_temperature);
-          // TODO add frost_protection_temperature sensor (OR CONTROL?)
-
-          DeviceMode schedule_mode = (DeviceMode)settings[4];
-          ESP_LOGD(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
-          this->mode = this->from_device_mode(schedule_mode);
-
-          float vacation_temperature = settings[5] / 2.0f;
-          ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
-          // TODO add vacation_temperature sensor (OR CONTROL?)
-
-          // vacation mode can be enabled directly with schedule_mode, or planned with below dates
-          int vacation_from = parse_int(settings, 6);
-          ESP_LOGD(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
-
-          int vacation_to = parse_int(settings, 10);
-          ESP_LOGD(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
-
-          // apply read configuration to the component
-          this->set_visual_min_temperature_override(temperature_min);
-          this->set_visual_max_temperature_override(temperature_max);
-          this->publish_state();
-        }
-
-        if (--this->request_counter_ == 0)
-        {
-          this->parent()->set_enabled(false);
-          this->node_state = espbt::ClientState::IDLE;
+          this->status_clear_warning();
+          this->on_read(param->read);
         }
         break;
 
@@ -227,6 +166,101 @@ namespace esphome
         ESP_LOGD(TAG, "[%s] unhandled event: event=%d, gattc_if=%d", this->parent()->address_str().c_str(), (int)event, gattc_if);
         break;
       }
+    }
+
+    void Device::on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param param)
+    {
+      if (param.handle == this->p_name->handle)
+      {
+        uint8_t *name = this->decrypt(param.value, param.value_len);
+        ESP_LOGD(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
+        std::string name_str((char *)name);
+        // this->set_name(name_str); TODO - this is too late
+      }
+      else if (param.handle == this->p_battery->handle)
+      {
+        uint8_t battery_level = param.value[0];
+        ESP_LOGD(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
+        this->battery_level_->publish_state(battery_level);
+      }
+      else if (param.handle == this->p_temperature->handle)
+      {
+        uint8_t *temperatures = this->decrypt(param.value, param.value_len);
+        float set_point_temperature = temperatures[0] / 2.0f;
+        float room_temperature = temperatures[1] / 2.0f;
+        ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
+        temperature_->publish_state(room_temperature);
+
+        // apply read configuration to the component
+        this->action = (room_temperature > set_point_temperature) ? ClimateAction::CLIMATE_ACTION_IDLE : ClimateAction::CLIMATE_ACTION_HEATING;
+        this->target_temperature = set_point_temperature;
+        this->current_temperature = room_temperature;
+        this->publish_state();
+      }
+      /*else if (param.handle == this->current_time_chr_handle_)
+      {
+        uint8_t *current_time = this->decrypt(param.value, param.value_len);
+        int local_time = parse_int(current_time, 0);
+        int time_offset = parse_int(current_time, 4);
+        ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", this->parent()->address_str().c_str(), local_time, time_offset);
+      } */
+      else if (param.handle == this->p_settings->handle)
+      {
+        uint8_t *settings = this->decrypt(param.value, param.value_len);
+        uint8_t config_bits = settings[0];
+
+        bool adaptable_regulation = parse_bit(config_bits, 0);
+        ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", this->parent()->address_str().c_str(), adaptable_regulation);
+
+        bool vertical_intallation = parse_bit(config_bits, 2);
+        ESP_LOGD(TAG, "[%s] vertical_intallation: %d", this->parent()->address_str().c_str(), vertical_intallation);
+
+        bool display_flip = parse_bit(config_bits, 3);
+        ESP_LOGD(TAG, "[%s] display_flip: %d", this->parent()->address_str().c_str(), display_flip);
+
+        bool slow_regulation = parse_bit(config_bits, 4);
+        ESP_LOGD(TAG, "[%s] slow_regulation: %d", this->parent()->address_str().c_str(), slow_regulation);
+
+        bool valve_installed = parse_bit(config_bits, 6);
+        ESP_LOGD(TAG, "[%s] valve_installed: %d", this->parent()->address_str().c_str(), valve_installed);
+
+        bool lock_control = parse_bit(config_bits, 7);
+        ESP_LOGD(TAG, "[%s] lock_control: %d", this->parent()->address_str().c_str(), lock_control);
+
+        float temperature_min = settings[1] / 2.0f;
+        ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", this->parent()->address_str().c_str(), temperature_min);
+
+        float temperature_max = settings[2] / 2.0f;
+        ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", this->parent()->address_str().c_str(), temperature_max);
+
+        float frost_protection_temperature = settings[3] / 2.0f;
+        ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", this->parent()->address_str().c_str(), frost_protection_temperature);
+        // TODO add frost_protection_temperature sensor (OR CONTROL?)
+
+        DeviceMode schedule_mode = (DeviceMode)settings[4];
+        ESP_LOGD(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
+        this->mode = this->from_device_mode(schedule_mode);
+
+        float vacation_temperature = settings[5] / 2.0f;
+        ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
+        // TODO add vacation_temperature sensor (OR CONTROL?)
+
+        // vacation mode can be enabled directly with schedule_mode, or planned with below dates
+        int vacation_from = parse_int(settings, 6);
+        ESP_LOGD(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
+
+        int vacation_to = parse_int(settings, 10);
+        ESP_LOGD(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
+
+        // apply read configuration to the component
+        this->set_visual_min_temperature_override(temperature_min);
+        this->set_visual_max_temperature_override(temperature_max);
+        this->publish_state();
+      }
+    }
+
+    void Device::on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param param)
+    {
     }
 
     climate::ClimateMode Device::from_device_mode(DeviceMode schedule_mode)
@@ -247,52 +281,6 @@ namespace esphome
         ESP_LOGW(TAG, "[%s] unexpected schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
         return ClimateMode::CLIMATE_MODE_HEAT; // unknown
       }
-    }
-
-    void Device::write_pin()
-    {
-      auto pin_chr = this->parent()->get_characteristic(SERVICE_SETTINGS, CHARACTERISTIC_PIN);
-      if (pin_chr == nullptr)
-      {
-        ESP_LOGE(TAG, "[%s] no settings service/PIN characteristic found at device, not a Danfoss Eco?", this->get_name().c_str());
-        this->status_set_warning();
-        return;
-      }
-
-      this->pin_chr_handle_ = pin_chr->handle;
-      auto status = esp_ble_gattc_write_char(this->parent()->gattc_if,
-                                             this->parent()->conn_id,
-                                             this->pin_chr_handle_,
-                                             sizeof(this->pin_code_),
-                                             this->pin_code_,
-                                             ESP_GATT_WRITE_TYPE_RSP,
-                                             ESP_GATT_AUTH_REQ_NONE);
-      if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%01x", this->parent()->address_str().c_str(), status);
-    }
-
-    uint16_t Device::read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid)
-    {
-      ESP_LOGI(TAG, "[%s] reading characteristic uuid=%s", this->parent()->address_str().c_str(), characteristic_uuid.to_string().c_str());
-      auto chr = this->parent()->get_characteristic(service_uuid, characteristic_uuid);
-      if (chr == nullptr)
-      {
-        ESP_LOGW(TAG, "[%s] characteristic uuid=%s not found", this->get_name().c_str(), characteristic_uuid.to_string().c_str());
-        this->status_set_warning();
-        return NAN_HANDLE;
-      }
-
-      auto status = esp_ble_gattc_read_char(this->parent()->gattc_if,
-                                            this->parent()->conn_id,
-                                            chr->handle,
-                                            ESP_GATT_AUTH_REQ_NONE);
-      if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%01x", this->parent()->address_str().c_str(), status);
-
-      // increment request counter to keep track of pending requests
-      this->request_counter_++;
-
-      return chr->handle;
     }
 
     uint8_t *Device::decrypt(uint8_t *value, uint16_t value_len)
@@ -325,17 +313,70 @@ namespace esphome
     // Update is triggered by on defined polling interval (see PollingComponent) to trigger state update report
     void Device::update()
     {
-      if (this->node_state != espbt::ClientState::ESTABLISHED)
+      this->connect();
+
+      this->commands_.push(new Command(CommandType::READ, this->p_name));
+      this->commands_.push(new Command(CommandType::READ, this->p_battery));
+      this->commands_.push(new Command(CommandType::READ, this->p_temperature));
+      this->commands_.push(new Command(CommandType::READ, this->p_settings));
+    }
+
+    void Device::connect()
+    {
+      if (this->node_state == espbt::ClientState::ESTABLISHED)
       {
-        if (!parent()->enabled)
-        {
-          ESP_LOGD(TAG, "[%s] received update request, re-enabling ble_client", this->parent()->address_str().c_str());
-          parent()->set_enabled(true);
-        }
-        // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
-        esp_ble_gap_stop_scanning();
-        this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause client to attempt connect() from its loop()
+        return;
       }
+
+      if (!parent()->enabled)
+      {
+        ESP_LOGD(TAG, "[%s] received update request, re-enabling ble_client", this->parent()->address_str().c_str());
+        parent()->set_enabled(true);
+      }
+      // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
+      esp_ble_gap_stop_scanning();
+      this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause client to attempt connect() from its loop()
+    }
+
+    void Device::read_request(DeviceProperty *property)
+    {
+      auto status = esp_ble_gattc_read_char(this->parent()->gattc_if,
+                                            this->parent()->conn_id,
+                                            property->handle,
+                                            ESP_GATT_AUTH_REQ_NONE);
+      if (status != ESP_OK)
+        ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%01x", this->parent()->address_str().c_str(), status);
+      else
+        this->request_counter_++;
+    }
+
+    void Device::resolve_handle(DeviceProperty *property)
+    {
+      ESP_LOGD(TAG, "[%s] resolving handler for service=%s, characteristic=%s", this->parent()->address_str().c_str(), property->service_uuid.to_string().c_str(), property->characteristic_uuid.to_string().c_str());
+      auto chr = this->parent()->get_characteristic(property->service_uuid, property->characteristic_uuid);
+      if (chr == nullptr)
+      {
+        ESP_LOGW(TAG, "[%s] characteristic uuid=%s not found", this->parent()->address_str().c_str(), property->characteristic_uuid.to_string().c_str());
+        this->status_set_warning();
+        return;
+      }
+
+      property->handle = chr->handle;
+    }
+
+    void Device::write_request(DeviceProperty *property, uint8_t *value)
+    {
+      auto status = esp_ble_gattc_write_char(this->parent()->gattc_if,
+                                             this->parent()->conn_id,
+                                             property->handle,
+                                             sizeof(value),
+                                             value,
+                                             ESP_GATT_WRITE_TYPE_RSP,
+                                             ESP_GATT_AUTH_REQ_NONE);
+      if (status != ESP_OK)
+        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%01x", this->parent()->address_str().c_str(), status);
+      else
+        this->request_counter_++;
     }
 
     void Device::set_pin_code(const std::string &str)

@@ -7,6 +7,7 @@
 #include "esphome/components/climate/climate.h"
 
 #include "helpers.h"
+#include "properties.h"
 
 #ifdef USE_ESP32
 
@@ -42,6 +43,15 @@ namespace esphome
     class Device : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent
     {
     public:
+      Device()
+      {
+        this->p_name = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
+        this->p_battery = new DeviceProperty(SERVICE_BATTERY, CHARACTERISTIC_BATTERY);
+        this->p_temperature = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE);
+        this->p_settings = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS);
+        this->p_pin = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_PIN);
+      }
+
       void setup() override;
       void loop() override;
       void update() override;
@@ -58,10 +68,22 @@ namespace esphome
 
     protected:
       void control(const climate::ClimateCall &call) override;
-      void write_pin();
-      uint16_t read_characteristic(espbt::ESPBTUUID service_uuid, espbt::ESPBTUUID characteristic_uuid);
       uint8_t *decrypt(uint8_t *value, uint16_t value_len);
       climate::ClimateMode from_device_mode(DeviceMode);
+
+      void connect();
+      void resolve_handle(DeviceProperty *property);
+      void read_request(DeviceProperty *);
+      void write_request(DeviceProperty *, uint8_t *value);
+
+      void on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param);
+      void on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param);
+
+      DeviceProperty *p_pin;
+      DeviceProperty *p_name;
+      DeviceProperty *p_battery;
+      DeviceProperty *p_temperature;
+      DeviceProperty *p_settings;
 
       uint8_t *secret_;
       uint8_t *pin_code_;
@@ -69,14 +91,8 @@ namespace esphome
       sensor::Sensor *battery_level_{nullptr};
       sensor::Sensor *temperature_{nullptr};
 
-      uint16_t pin_chr_handle_;
-      uint16_t name_chr_handle_;
-      uint16_t battery_chr_handle_;
-      uint16_t temperature_chr_handle_;
-      uint16_t current_time_chr_handle_;
-      uint16_t settings_chr_handle_;
-
       uint8_t request_counter_ = 0;
+      espbt::Queue<Command> commands_;
     };
 
   } // namespace danfoss_eco
