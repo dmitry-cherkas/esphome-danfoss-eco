@@ -118,11 +118,8 @@ namespace esphome
         break;
 
       case ESP_GATTC_SEARCH_CMPL_EVT:
-        this->p_pin->init_handle(this->parent());
-        this->p_name->init_handle(this->parent());
-        this->p_battery->init_handle(this->parent());
-        this->p_temperature->init_handle(this->parent());
-        this->p_settings->init_handle(this->parent());
+        for (auto p : this->properties)
+          p->init_handle(this->parent());
 
         ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
         this->write_request(this->p_pin, this->pin_code_);

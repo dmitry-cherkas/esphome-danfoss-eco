@@ -37,11 +37,13 @@ namespace esphome
     public:
       Device()
       {
+        this->p_pin = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_PIN);
         this->p_name = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_NAME);
         this->p_battery = new DeviceProperty(SERVICE_BATTERY, CHARACTERISTIC_BATTERY);
         this->p_temperature = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE);
         this->p_settings = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS);
-        this->p_pin = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_PIN);
+
+        this->properties = {this->p_pin, this->p_name, this->p_battery, this->p_temperature, this->p_settings};
       }
 
       void setup() override;
@@ -73,6 +75,7 @@ namespace esphome
       DeviceProperty *p_battery;
       DeviceProperty *p_temperature;
       DeviceProperty *p_settings;
+      std::set<DeviceProperty *> properties;
 
       uint8_t *secret_;
       uint8_t *pin_code_;
