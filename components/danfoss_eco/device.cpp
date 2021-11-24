@@ -162,93 +162,14 @@ namespace esphome
 
     void Device::on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param param)
     {
-      if (param.handle == this->p_name->handle)
-      {
-        uint8_t *name = decrypt(param.value, param.value_len);
-        ESP_LOGD(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
-        std::string name_str((char *)name);
-        // this->set_name(name_str); TODO - this is too late
-      }
-      else if (param.handle == this->p_battery->handle)
-      {
-        uint8_t battery_level = param.value[0];
-        ESP_LOGD(TAG, "[%s] battery level: %d %%", this->parent()->address_str().c_str(), battery_level);
-        this->battery_level_->publish_state(battery_level);
-      }
-      else if (param.handle == this->p_temperature->handle)
-      {
-        uint8_t *temperatures = decrypt(param.value, param.value_len);
-        float set_point_temperature = temperatures[0] / 2.0f;
-        float room_temperature = temperatures[1] / 2.0f;
-        ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
-        temperature_->publish_state(room_temperature);
+      auto device_property = std::find_if(properties.begin(), properties.end(),
+                                          [&param](DeviceProperty *p)
+                                          { return p->handle == param.handle; });
 
-        // apply read configuration to the component
-        this->action = (room_temperature > set_point_temperature) ? ClimateAction::CLIMATE_ACTION_IDLE : ClimateAction::CLIMATE_ACTION_HEATING;
-        this->target_temperature = set_point_temperature;
-        this->current_temperature = room_temperature;
-        this->publish_state();
-      }
-      /*else if (param.handle == this->current_time_chr_handle_)
-      {
-        uint8_t *current_time = decrypt(param.value, param.value_len);
-        int local_time = parse_int(current_time, 0);
-        int time_offset = parse_int(current_time, 4);
-        ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", this->parent()->address_str().c_str(), local_time, time_offset);
-      } */
-      else if (param.handle == this->p_settings->handle)
-      {
-        uint8_t *settings = decrypt(param.value, param.value_len);
-        uint8_t config_bits = settings[0];
-
-        bool adaptable_regulation = parse_bit(config_bits, 0);
-        ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", this->parent()->address_str().c_str(), adaptable_regulation);
-
-        bool vertical_intallation = parse_bit(config_bits, 2);
-        ESP_LOGD(TAG, "[%s] vertical_intallation: %d", this->parent()->address_str().c_str(), vertical_intallation);
-
-        bool display_flip = parse_bit(config_bits, 3);
-        ESP_LOGD(TAG, "[%s] display_flip: %d", this->parent()->address_str().c_str(), display_flip);
-
-        bool slow_regulation = parse_bit(config_bits, 4);
-        ESP_LOGD(TAG, "[%s] slow_regulation: %d", this->parent()->address_str().c_str(), slow_regulation);
-
-        bool valve_installed = parse_bit(config_bits, 6);
-        ESP_LOGD(TAG, "[%s] valve_installed: %d", this->parent()->address_str().c_str(), valve_installed);
-
-        bool lock_control = parse_bit(config_bits, 7);
-        ESP_LOGD(TAG, "[%s] lock_control: %d", this->parent()->address_str().c_str(), lock_control);
-
-        float temperature_min = settings[1] / 2.0f;
-        ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", this->parent()->address_str().c_str(), temperature_min);
-
-        float temperature_max = settings[2] / 2.0f;
-        ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", this->parent()->address_str().c_str(), temperature_max);
-
-        float frost_protection_temperature = settings[3] / 2.0f;
-        ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", this->parent()->address_str().c_str(), frost_protection_temperature);
-        // TODO add frost_protection_temperature sensor (OR CONTROL?)
-
-        DeviceMode schedule_mode = (DeviceMode)settings[4];
-        ESP_LOGD(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
-        this->mode = from_device_mode(schedule_mode);
-
-        float vacation_temperature = settings[5] / 2.0f;
-        ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
-        // TODO add vacation_temperature sensor (OR CONTROL?)
-
-        // vacation mode can be enabled directly with schedule_mode, or planned with below dates
-        int vacation_from = parse_int(settings, 6);
-        ESP_LOGD(TAG, "[%s] vacation_from: %d", this->parent()->address_str().c_str(), vacation_from);
-
-        int vacation_to = parse_int(settings, 10);
-        ESP_LOGD(TAG, "[%s] vacation_to: %d", this->parent()->address_str().c_str(), vacation_to);
-
-        // apply read configuration to the component
-        this->set_visual_min_temperature_override(temperature_min);
-        this->set_visual_max_temperature_override(temperature_max);
-        this->publish_state();
-      }
+      if (device_property != properties.end())
+        (*device_property)->read(this, param.value, param.value_len);
+      else
+        ESP_LOGW(TAG, "[%s] unknown property with handle=%#04x", this->parent()->address_str().c_str(), param.handle);
     }
 
     void Device::on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param param)
