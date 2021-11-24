@@ -9,6 +9,16 @@ namespace esphome
     {
         namespace espbt = esphome::esp32_ble_tracker;
 
+        enum DeviceMode : uint8_t
+        {
+            MANUAL = 0,
+            SCHEDULED = 1,
+            VACATION = 3,
+            HOLD = 5 // TODO: what is the meaning of this mode?
+        };
+
+        climate::ClimateMode from_device_mode(DeviceMode);
+
         class DeviceProperty
         {
         public:

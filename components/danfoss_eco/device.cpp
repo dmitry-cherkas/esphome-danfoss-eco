@@ -28,13 +28,7 @@ namespace esphome
       }
 
       // pretend, we have already discovered the device
-      uint64_t addr = this->parent()->address;
-      this->parent()->remote_bda[0] = (addr >> 40) & 0xFF;
-      this->parent()->remote_bda[1] = (addr >> 32) & 0xFF;
-      this->parent()->remote_bda[2] = (addr >> 24) & 0xFF;
-      this->parent()->remote_bda[3] = (addr >> 16) & 0xFF;
-      this->parent()->remote_bda[4] = (addr >> 8) & 0xFF;
-      this->parent()->remote_bda[5] = (addr >> 0) & 0xFF;
+      copy_address(this->parent()->address, this->parent()->remote_bda);
     }
 
     void Device::loop()
@@ -173,7 +167,7 @@ namespace esphome
     {
       if (param.handle == this->p_name->handle)
       {
-        uint8_t *name = this->decrypt(param.value, param.value_len);
+        uint8_t *name = decrypt(param.value, param.value_len);
         ESP_LOGD(TAG, "[%s] device name: %s", this->parent()->address_str().c_str(), name);
         std::string name_str((char *)name);
         // this->set_name(name_str); TODO - this is too late
@@ -186,7 +180,7 @@ namespace esphome
       }
       else if (param.handle == this->p_temperature->handle)
       {
-        uint8_t *temperatures = this->decrypt(param.value, param.value_len);
+        uint8_t *temperatures = decrypt(param.value, param.value_len);
         float set_point_temperature = temperatures[0] / 2.0f;
         float room_temperature = temperatures[1] / 2.0f;
         ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->parent()->address_str().c_str(), room_temperature, set_point_temperature);
@@ -200,14 +194,14 @@ namespace esphome
       }
       /*else if (param.handle == this->current_time_chr_handle_)
       {
-        uint8_t *current_time = this->decrypt(param.value, param.value_len);
+        uint8_t *current_time = decrypt(param.value, param.value_len);
         int local_time = parse_int(current_time, 0);
         int time_offset = parse_int(current_time, 4);
         ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", this->parent()->address_str().c_str(), local_time, time_offset);
       } */
       else if (param.handle == this->p_settings->handle)
       {
-        uint8_t *settings = this->decrypt(param.value, param.value_len);
+        uint8_t *settings = decrypt(param.value, param.value_len);
         uint8_t config_bits = settings[0];
 
         bool adaptable_regulation = parse_bit(config_bits, 0);
@@ -240,7 +234,7 @@ namespace esphome
 
         DeviceMode schedule_mode = (DeviceMode)settings[4];
         ESP_LOGD(TAG, "[%s] schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
-        this->mode = this->from_device_mode(schedule_mode);
+        this->mode = from_device_mode(schedule_mode);
 
         float vacation_temperature = settings[5] / 2.0f;
         ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", this->parent()->address_str().c_str(), vacation_temperature);
@@ -262,53 +256,6 @@ namespace esphome
 
     void Device::on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param param)
     {
-    }
-
-    climate::ClimateMode Device::from_device_mode(DeviceMode schedule_mode)
-    {
-      switch (schedule_mode)
-      {
-      case DeviceMode::MANUAL:
-        return ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
-
-      case DeviceMode::VACATION:
-      case DeviceMode::SCHEDULED:
-        return ClimateMode::CLIMATE_MODE_AUTO;
-
-      case DeviceMode::HOLD:
-        return ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
-
-      default:
-        ESP_LOGW(TAG, "[%s] unexpected schedule_mode: %d", this->parent()->address_str().c_str(), schedule_mode);
-        return ClimateMode::CLIMATE_MODE_HEAT; // unknown
-      }
-    }
-
-    uint8_t *Device::decrypt(uint8_t *value, uint16_t value_len)
-    {
-      std::string s = hexencode(value, value_len);
-      ESP_LOGD(TAG, "[%s] raw value: %s", this->parent()->address_str().c_str(), s.c_str());
-
-      uint8_t buffer[value_len];
-      reverse_chunks(value, value_len, buffer);
-      std::string s1 = hexencode(buffer, value_len);
-      ESP_LOGV(TAG, "[%s] reversed bytes: %s", this->parent()->address_str().c_str(), s1.c_str());
-
-      // Perform Decryption
-      auto xxtea_status = xxtea_decrypt(buffer, value_len);
-      if (xxtea_status != XXTEA_STATUS_SUCCESS)
-      {
-        ESP_LOGW(TAG, "[%s] xxtea_decrypt failed, status=%d", this->parent()->address_str().c_str(), xxtea_status);
-      }
-      else
-      {
-        std::string s2 = hexencode(buffer, value_len);
-        ESP_LOGV(TAG, "[%s] decrypted reversed bytes: %s", this->parent()->address_str().c_str(), s2.c_str());
-
-        reverse_chunks(buffer, value_len, value);
-        ESP_LOGD(TAG, "[%s] decrypted value: %s", this->parent()->address_str().c_str(), value);
-      }
-      return value;
     }
 
     // Update is triggered by on defined polling interval (see PollingComponent) to trigger state update report
@@ -336,7 +283,7 @@ namespace esphome
       }
       // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
       esp_ble_gap_stop_scanning();
-      this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause client to attempt connect() from its loop()
+      this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause ble_client to attempt connect() from its loop()
     }
 
     void Device::read_request(DeviceProperty *property)
