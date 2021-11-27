@@ -131,8 +131,7 @@ namespace esphome
           p->init_handle(this->parent());
 
         ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
-        // TODO: support variable length of pin code? Or validate config.length==4?
-        if (this->p_pin->write_request(this->parent(), this->pin_code_, 4))
+        if (this->p_pin->write_request(this->parent(), this->pin_code_, PIN_CODE_LENGTH)) // FIXME: when PIN is enabled, this fails
           this->request_counter_++;
         break;
 

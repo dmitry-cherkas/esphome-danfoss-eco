@@ -18,6 +18,7 @@ namespace esphome
 {
   namespace danfoss_eco
   {
+    static uint8_t PIN_CODE_LENGTH = 4;
     static uint8_t default_pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
     class Device : public MyComponent

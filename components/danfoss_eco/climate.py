@@ -33,12 +33,18 @@ def validate_secret(value):
         raise cv.Invalid("Secret key should be exactly 16 bytes (32 chars)")
     return value
 
+def validate_pin(value):
+    value = cv.string_strict(value)
+    if len(value) != 4:
+        raise cv.Invalid("PIN code should be exactly 4 chars")
+    return value
+
 CONFIG_SCHEMA = (
     climate.CLIMATE_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(DanfossEco),
             cv.Required(CONF_SECRET_KEY): validate_secret,
-            cv.Optional(CONF_PIN_CODE): cv.string_strict,
+            cv.Optional(CONF_PIN_CODE): validate_pin,
             cv.Optional(CONF_BATTERY_LEVEL): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 accuracy_decimals=0,
