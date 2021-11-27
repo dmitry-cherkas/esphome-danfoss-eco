@@ -41,7 +41,7 @@ namespace esphome
       void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) override;
       void dump_config() override;
       float get_setup_priority() const override { return setup_priority::DATA; }
-      
+
       climate::ClimateTraits traits() override;
 
       void set_secret_key(const char *);
@@ -51,8 +51,6 @@ namespace esphome
       void control(const climate::ClimateCall &call) override;
 
       void connect();
-      void read_request(DeviceProperty *);
-      void write_request(DeviceProperty *, uint8_t *value, uint16_t value_len);
 
       void on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param);
       void on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param);

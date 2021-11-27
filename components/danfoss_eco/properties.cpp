@@ -23,6 +23,38 @@ namespace esphome
             return true;
         }
 
+        bool DeviceProperty::read_request(esphome::ble_client::BLEClient *client)
+        {
+            auto status = esp_ble_gattc_read_char(client->gattc_if,
+                                                  client->conn_id,
+                                                  this->handle,
+                                                  ESP_GATT_AUTH_REQ_NONE);
+            if (status != ESP_OK)
+                ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%01x", client->address_str().c_str(), status);
+
+            return status == ESP_OK;
+        }
+
+        bool DeviceProperty::write_request(esphome::ble_client::BLEClient *client, uint8_t *data, uint16_t data_len)
+        {
+            auto status = esp_ble_gattc_write_char(client->gattc_if,
+                                                   client->conn_id,
+                                                   this->handle,
+                                                   data_len,
+                                                   data,
+                                                   ESP_GATT_WRITE_TYPE_RSP,
+                                                   ESP_GATT_AUTH_REQ_NONE);
+            if (status != ESP_OK)
+                ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%01x", client->address_str().c_str(), status);
+
+            return status == ESP_OK;
+        }
+
+        bool DeviceProperty::write_request(esphome::ble_client::BLEClient *client, DeviceData *data)
+        {
+            return this->write_request(client, data->pack(), data->length);
+        }
+
         void NameProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             uint8_t *name = decrypt(value, value_len);

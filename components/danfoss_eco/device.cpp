@@ -14,6 +14,7 @@ namespace esphome
     {
       LOG_CLIMATE(TAG, "Danfoss Eco eTRV", this);
       LOG_SENSOR(TAG, "Battery Level", this->battery_level_);
+      LOG_SENSOR(TAG, "Room Temperature", this->temperature_);
     }
 
     void Device::setup()
@@ -41,10 +42,14 @@ namespace esphome
       Command *cmd = this->commands_.pop();
       while (cmd != nullptr)
       {
+        bool success;
         if (cmd->type == CommandType::READ)
-          read_request(cmd->property);
+          success = cmd->property->read_request(this->parent());
         else
-          write_request(cmd->property, cmd->data->pack(), cmd->data->length);
+          success = cmd->property->write_request(this->parent(), cmd->data.get());
+
+        if (success)
+          this->request_counter_++;
 
         delete cmd; // TODO: delete cmd->data ???
         cmd = this->commands_.pop();
@@ -119,7 +124,9 @@ namespace esphome
           p->init_handle(this->parent());
 
         ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
-        this->write_request(this->p_pin, this->pin_code_, 4); // TODO: support variable length of pin code? Or validate config.length==4?
+        // TODO: support variable length of pin code? Or validate config.length==4?
+        if (this->p_pin->write_request(this->parent(), this->pin_code_, 4))
+          this->request_counter_++;
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
@@ -199,36 +206,6 @@ namespace esphome
       // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
       esp_ble_gap_stop_scanning();
       this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause ble_client to attempt connect() from its loop()
-    }
-
-    void Device::read_request(DeviceProperty *property)
-    {
-      auto status = esp_ble_gattc_read_char(this->parent()->gattc_if,
-                                            this->parent()->conn_id,
-                                            property->handle,
-                                            ESP_GATT_AUTH_REQ_NONE);
-      if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%01x", this->parent()->address_str().c_str(), status);
-      else
-        this->request_counter_++;
-    }
-
-    void Device::write_request(DeviceProperty *property, uint8_t *value, uint16_t value_len)
-    {
-      std::string wrt_str = hexencode(value, value_len); //TODO remove
-      ESP_LOGI(TAG, "handle=%04x, data send: %s", property->handle, wrt_str.c_str());
-
-      auto status = esp_ble_gattc_write_char(this->parent()->gattc_if,
-                                             this->parent()->conn_id,
-                                             property->handle,
-                                             value_len,
-                                             value,
-                                             ESP_GATT_WRITE_TYPE_RSP,
-                                             ESP_GATT_AUTH_REQ_NONE);
-      if (status != ESP_OK)
-        ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%01x", this->parent()->address_str().c_str(), status);
-      else
-        this->request_counter_++;
     }
 
     void Device::set_pin_code(const std::string &str)

@@ -4,6 +4,7 @@
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 
 #include "my_component.h"
+#include "device_data.h"
 
 namespace esphome
 {
@@ -24,15 +25,15 @@ namespace esphome
         class DeviceProperty
         {
         public:
-            DeviceProperty(espbt::ESPBTUUID s_uuid, espbt::ESPBTUUID c_uuid)
-            {
-                this->service_uuid = s_uuid;
-                this->characteristic_uuid = c_uuid;
-            }
+            DeviceProperty(espbt::ESPBTUUID s_uuid, espbt::ESPBTUUID c_uuid) : service_uuid(s_uuid), characteristic_uuid(c_uuid) {}
 
             virtual void read(MyComponent *component, uint8_t *value, uint16_t value_len){};
 
             bool init_handle(esphome::ble_client::BLEClient *);
+            bool read_request(esphome::ble_client::BLEClient *client);
+            bool write_request(esphome::ble_client::BLEClient *client, DeviceData *data);
+            bool write_request(esphome::ble_client::BLEClient *client, uint8_t *data, uint16_t data_len);
+
             uint16_t handle;
 
         private:
@@ -52,39 +53,6 @@ namespace esphome
         public:
             BatteryProperty() : DeviceProperty(SERVICE_BATTERY, CHARACTERISTIC_BATTERY) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
-        };
-
-        struct DeviceData
-        {
-            uint16_t length;
-            virtual uint8_t *pack() = 0;
-
-            DeviceData(uint16_t l) : length(l) {}
-            virtual ~DeviceData() {}
-        };
-
-        struct TemperatureData : public DeviceData
-        {
-            float target_temperature;
-            float room_temperature;
-
-            TemperatureData(float target_temperature) : DeviceData(8)
-            {
-                this->target_temperature = target_temperature;
-            }
-
-            TemperatureData(uint8_t *raw_data, uint16_t value_len) : DeviceData(8)
-            {
-                uint8_t *temperatures = decrypt(raw_data, value_len);
-                this->target_temperature = temperatures[0] / 2.0f;
-                this->room_temperature = temperatures[1] / 2.0f;
-            }
-
-            uint8_t *pack()
-            {
-                uint8_t buff[length] = {(uint8_t) (target_temperature * 2), 0};
-                return encrypt(buff, sizeof(buff));
-            }
         };
 
         class TemperatureProperty : public DeviceProperty
