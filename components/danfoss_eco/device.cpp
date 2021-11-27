@@ -34,10 +34,11 @@ namespace esphome
 
     void Device::loop()
     {
+      if (this->is_failed())
+        disconnect();
+
       if (this->node_state != espbt::ClientState::ESTABLISHED)
-      {
         return;
-      }
 
       Command *cmd = this->commands_.pop();
       while (cmd != nullptr)
@@ -56,12 +57,9 @@ namespace esphome
       }
 
       // once we are done with pending commands - check to see if there are any pending requests
+      // if there are no pending requests - we are done with the device for now and should disconnect
       if (this->request_counter_ == 0)
-      {
-        // if there are no pending requests - we are done with the device for now, disconnecting
-        this->parent()->set_enabled(false);
-        this->node_state = espbt::ClientState::IDLE;
-      }
+        disconnect();
     }
 
     void Device::control(const ClimateCall &call)
@@ -131,23 +129,31 @@ namespace esphome
           p->init_handle(this->parent());
 
         ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
-        if (this->p_pin->write_request(this->parent(), this->pin_code_, PIN_CODE_LENGTH)) // FIXME: when PIN is enabled, this fails
-          this->request_counter_++;
+        this->p_pin->write_request(this->parent(), this->pin_code_, PIN_CODE_LENGTH); // FIXME: when PIN is enabled, this fails
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
+        if (param->write.handle == this->p_pin->handle)
+        {
+
+          if (param->write.status != ESP_GATT_OK)
+          {
+            ESP_LOGE(TAG, "[%s] pin FAILED, status=%#04x", this->parent()->address_str().c_str(), param->write.status);
+            this->mark_failed();
+          }
+          else
+          {
+            ESP_LOGI(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
+            this->node_state = espbt::ClientState::ESTABLISHED;
+          }
+          break;
+        }
+        
         this->request_counter_--;
         if (param->write.status != ESP_GATT_OK)
           ESP_LOGW(TAG, "[%s] failed to write characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
-        else if (param->write.handle == this->p_pin->handle)
-        {
-          ESP_LOGI(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
-          this->node_state = espbt::ClientState::ESTABLISHED;
-        }
-        else
-        { // write request ACK
+        else // write request ACK
           this->on_write(param->write);
-        }
         break;
 
       case ESP_GATTC_READ_CHAR_EVT:
@@ -213,6 +219,12 @@ namespace esphome
       // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
       esp_ble_gap_stop_scanning();
       this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause ble_client to attempt connect() from its loop()
+    }
+
+    void Device::disconnect()
+    {
+      this->parent()->set_enabled(false);
+      this->node_state = espbt::ClientState::IDLE;
     }
 
     void Device::set_pin_code(const std::string &str)

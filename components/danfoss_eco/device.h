@@ -52,6 +52,7 @@ namespace esphome
       void control(const climate::ClimateCall &call) override;
 
       void connect();
+      void disconnect();
 
       void on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param);
       void on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param);
