@@ -71,7 +71,8 @@ namespace esphome
         {
             uint8_t battery_level = value[0];
             ESP_LOGD(TAG, "[%s] battery level: %d %%", component->parent()->address_str().c_str(), battery_level);
-            component->battery_level()->publish_state(battery_level);
+            if (component->battery_level() != nullptr)
+                component->battery_level()->publish_state(battery_level);
         }
 
         void TemperatureProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
@@ -80,7 +81,8 @@ namespace esphome
             this->data.reset(t_data);
 
             ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->parent()->address_str().c_str(), t_data->room_temperature, t_data->target_temperature);
-            component->temperature()->publish_state(t_data->room_temperature);
+            if (component->temperature() != nullptr)
+                component->temperature()->publish_state(t_data->room_temperature);
 
             // apply read configuration to the component
             // TODO component->action should consider "open window detection" feature of Danfoss Eco
