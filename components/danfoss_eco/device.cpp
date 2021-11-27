@@ -44,9 +44,9 @@ namespace esphome
         if (cmd->type == CommandType::READ)
           read_request(cmd->property);
         else
-          write_request(cmd->property, cmd->value);
+          write_request(cmd->property, cmd->data->pack(), cmd->data->length());
 
-        delete cmd;
+        delete cmd; // TODO: delete cmd->data ???
         cmd = this->commands_.pop();
       }
 
@@ -66,13 +66,10 @@ namespace esphome
         // this is new temprature we want to set
         float new_target_temperature = *call.get_target_temperature();
 
-        // TODO make sure we are connected to eTRV
-        // TODO prepare write command to set the target temperature
-        /*auto pkt = this->codec_->get_set_target_temp_request(*call.get_target_temperature());
-        auto status = esp_ble_gattc_write_char(this->parent_->gattc_if, this->parent_->conn_id, this->char_handle_,
-                                               pkt->length, pkt->data, ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
-        if (status)
-          ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%d", this->parent_->address_str().c_str(), status);*/
+        TemperatureData *data = new TemperatureData(new_target_temperature); // TODO: should I explicitly delete this?
+        this->commands_.push(new Command(CommandType::WRITE, this->p_temperature, data));
+        // initiate connection to the device
+        connect();
       }
 
       // TODO add mode switch (AUTO -> HEAT) - toggle between schedule and manual modes
@@ -122,7 +119,7 @@ namespace esphome
           p->init_handle(this->parent());
 
         ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
-        this->write_request(this->p_pin, this->pin_code_);
+        this->write_request(this->p_pin, this->pin_code_, 4); // TODO: support variable length of pin code? Or validate config.length==4?
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
@@ -216,12 +213,15 @@ namespace esphome
         this->request_counter_++;
     }
 
-    void Device::write_request(DeviceProperty *property, uint8_t *value)
+    void Device::write_request(DeviceProperty *property, uint8_t *value, uint16_t value_len)
     {
+      std::string wrt_str = hexencode(value, value_len); //TODO remove
+      ESP_LOGI(TAG, "handle=%04x, data send: %s", property->handle, wrt_str.c_str());
+
       auto status = esp_ble_gattc_write_char(this->parent()->gattc_if,
                                              this->parent()->conn_id,
                                              property->handle,
-                                             sizeof(value),
+                                             value_len,
                                              value,
                                              ESP_GATT_WRITE_TYPE_RSP,
                                              ESP_GATT_AUTH_REQ_NONE);
@@ -235,13 +235,14 @@ namespace esphome
     {
       if (str.length() > 0)
       {
-        this->pin_code_ = (uint8_t *)str.c_str();
+        this->pin_code_ = (uint8_t *)malloc(str.length());
+        memcpy(this->pin_code_, (const char *)str.c_str(), str.length());
       }
       else
       {
         this->pin_code_ = default_pin_code;
       }
-      std::string hex_str = hexencode(this->pin_code_, sizeof(this->pin_code_));
+      std::string hex_str = hexencode(this->pin_code_, str.length());
       ESP_LOGD(TAG, "[%s] PIN bytes: %s", this->parent()->address_str().c_str(), hex_str.c_str());
     }
 

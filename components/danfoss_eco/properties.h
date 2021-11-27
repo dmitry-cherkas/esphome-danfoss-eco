@@ -54,6 +54,51 @@ namespace esphome
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
+        struct DeviceData
+        {
+            virtual uint8_t *pack() = 0;
+            virtual uint16_t length() = 0;
+
+            virtual ~DeviceData() {}
+        };
+
+        struct TemperatureData : public DeviceData
+        {
+            float target_temperature;
+            float room_temperature;
+
+            TemperatureData(float target_temperature)
+            {
+                this->target_temperature = target_temperature;
+            }
+
+            TemperatureData(uint8_t *raw_data, uint16_t value_len)
+            {
+                uint8_t *temperatures = decrypt(raw_data, value_len);
+                this->target_temperature = temperatures[0] / 2.0f;
+                this->room_temperature = temperatures[1] / 2.0f;
+            }
+
+            uint8_t *pack()
+            {
+                uint8_t buff[8] = {0};
+                buff[0] = target_temperature * 2;
+                buff[1] = room_temperature * 2;
+
+                std::string s1 = hexencode(buff, sizeof(buff));
+                ESP_LOGI(TAG, "data in: %s", s1.c_str());
+
+                uint8_t *out = encrypt(buff, sizeof(buff));
+
+                std::string s2 = hexencode(out, sizeof(out));
+                ESP_LOGI(TAG, "data out: %s", s2.c_str());
+
+                return out;
+            }
+
+            uint16_t length() { return 8; }
+        };
+
         class TemperatureProperty : public DeviceProperty
         {
         public:
@@ -94,11 +139,11 @@ namespace esphome
         {
         public:
             Command(CommandType t, DeviceProperty *p) : type(t), property(p) {}
-            Command(CommandType t, DeviceProperty *p, uint8_t *v) : type(t), property(p), value(v) {}
+            Command(CommandType t, DeviceProperty *p, DeviceData *d) : type(t), property(p), data(d) {}
 
             CommandType type; // 0 - read, 1 - write
             DeviceProperty *property;
-            uint8_t *value;
+            std::unique_ptr<DeviceData> data{nullptr};
         };
 
     } // namespace danfoss_eco

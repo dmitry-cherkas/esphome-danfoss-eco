@@ -52,7 +52,7 @@ namespace esphome
 
       void connect();
       void read_request(DeviceProperty *);
-      void write_request(DeviceProperty *, uint8_t *value);
+      void write_request(DeviceProperty *, uint8_t *value, uint16_t value_len);
 
       void on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param);
       void on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param);

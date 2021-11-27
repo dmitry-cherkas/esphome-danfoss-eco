@@ -40,16 +40,14 @@ namespace esphome
 
         void TemperatureProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
-            uint8_t *temperatures = decrypt(value, value_len);
-            float set_point_temperature = temperatures[0] / 2.0f;
-            float room_temperature = temperatures[1] / 2.0f;
-            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->parent()->address_str().c_str(), room_temperature, set_point_temperature);
-            component->temperature()->publish_state(room_temperature);
+            auto data = TemperatureData(value, value_len);
+            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->parent()->address_str().c_str(), data.room_temperature, data.target_temperature);
+            component->temperature()->publish_state(data.room_temperature);
 
             // apply read configuration to the component
-            component->action = (room_temperature > set_point_temperature) ? climate::ClimateAction::CLIMATE_ACTION_IDLE : climate::ClimateAction::CLIMATE_ACTION_HEATING;
-            component->target_temperature = set_point_temperature;
-            component->current_temperature = room_temperature;
+            component->action = (data.room_temperature > data.target_temperature) ? climate::ClimateAction::CLIMATE_ACTION_IDLE : climate::ClimateAction::CLIMATE_ACTION_HEATING;
+            component->target_temperature = data.target_temperature;
+            component->current_temperature = data.room_temperature;
             component->publish_state();
         }
 
