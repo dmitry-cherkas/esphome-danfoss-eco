@@ -44,7 +44,7 @@ namespace esphome
         if (cmd->type == CommandType::READ)
           read_request(cmd->property);
         else
-          write_request(cmd->property, cmd->data->pack(), cmd->data->length());
+          write_request(cmd->property, cmd->data->pack(), cmd->data->length);
 
         delete cmd; // TODO: delete cmd->data ???
         cmd = this->commands_.pop();
@@ -193,7 +193,7 @@ namespace esphome
 
       if (!parent()->enabled)
       {
-        ESP_LOGD(TAG, "[%s] received update request, re-enabling ble_client", this->parent()->address_str().c_str());
+        ESP_LOGD(TAG, "[%s] re-enabling ble_client", this->parent()->address_str().c_str());
         parent()->set_enabled(true);
       }
       // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)

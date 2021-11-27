@@ -56,9 +56,10 @@ namespace esphome
 
         struct DeviceData
         {
+            uint16_t length;
             virtual uint8_t *pack() = 0;
-            virtual uint16_t length() = 0;
 
+            DeviceData(uint16_t l) : length(l) {}
             virtual ~DeviceData() {}
         };
 
@@ -67,12 +68,12 @@ namespace esphome
             float target_temperature;
             float room_temperature;
 
-            TemperatureData(float target_temperature)
+            TemperatureData(float target_temperature) : DeviceData(8)
             {
                 this->target_temperature = target_temperature;
             }
 
-            TemperatureData(uint8_t *raw_data, uint16_t value_len)
+            TemperatureData(uint8_t *raw_data, uint16_t value_len) : DeviceData(8)
             {
                 uint8_t *temperatures = decrypt(raw_data, value_len);
                 this->target_temperature = temperatures[0] / 2.0f;
@@ -81,22 +82,9 @@ namespace esphome
 
             uint8_t *pack()
             {
-                uint8_t buff[8] = {0};
-                buff[0] = target_temperature * 2;
-                buff[1] = room_temperature * 2;
-
-                std::string s1 = hexencode(buff, sizeof(buff));
-                ESP_LOGI(TAG, "data in: %s", s1.c_str());
-
-                uint8_t *out = encrypt(buff, sizeof(buff));
-
-                std::string s2 = hexencode(out, sizeof(out));
-                ESP_LOGI(TAG, "data out: %s", s2.c_str());
-
-                return out;
+                uint8_t buff[length] = {(uint8_t) (target_temperature * 2), 0};
+                return encrypt(buff, sizeof(buff));
             }
-
-            uint16_t length() { return 8; }
         };
 
         class TemperatureProperty : public DeviceProperty
