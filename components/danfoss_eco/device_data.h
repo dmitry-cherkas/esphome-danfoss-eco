@@ -9,12 +9,11 @@ namespace esphome
         struct DeviceData
         {
             uint16_t length;
-            virtual uint8_t *pack() = 0;
+            virtual void pack(uint8_t *) = 0;
 
             DeviceData(uint16_t l) : length(l) {}
             virtual ~DeviceData()
             {
-                ESP_LOGW(TAG, "DeviceData destroyed"); // TODO: remove debug output
             }
         };
 
@@ -32,10 +31,12 @@ namespace esphome
                 this->room_temperature = temperatures[1] / 2.0f;
             }
 
-            uint8_t *pack()
+            void pack(uint8_t *buff)
             {
-                uint8_t buff[length] = {(uint8_t)(target_temperature * 2), 0};
-                return encrypt(buff, sizeof(buff));
+                buff[0] = (uint8_t)(target_temperature * 2);
+                buff[1] = (uint8_t)(room_temperature * 2);
+
+                encrypt(buff, length);
             }
         };
 
@@ -49,16 +50,25 @@ namespace esphome
                 HOLD = 5 // TODO: what is the meaning of this mode?
             };
 
-            bool adaptable_regulation;
-            bool vertical_intallation;
-            bool display_flip;
-            bool slow_regulation;
-            bool valve_installed;
-            bool lock_control;
+            bool get_adaptable_regulation() { return parse_bit(this->settings_[0], 0); }
+            bool get_vertical_intallation() { return parse_bit(this->settings_[0], 2); }
+            bool get_display_flip() { return parse_bit(this->settings_[0], 3); }
+            bool get_slow_regulation() { return parse_bit(this->settings_[0], 4); }
+            bool get_valve_installed() { return parse_bit(this->settings_[0], 6); }
+            bool get_lock_control() { return parse_bit(this->settings_[0], 7); }
+
+            void set_adaptable_regulation(bool state) { set_bit(this->settings_[0], 0, state); }
+            void set_vertical_intallation(bool state) { set_bit(this->settings_[0], 2, state); }
+            void set_display_flip(bool state) { set_bit(this->settings_[0], 3, state); }
+            void set_slow_regulation(bool state) { set_bit(this->settings_[0], 4, state); }
+            void set_valve_installed(bool state) { set_bit(this->settings_[0], 6, state); }
+            void set_lock_control(bool state) { set_bit(this->settings_[0], 7, state); }
+
+            climate::ClimateMode device_mode;
+
             float temperature_min;
             float temperature_max;
             float frost_protection_temperature;
-            climate::ClimateMode device_mode;
             float vacation_temperature;
             // vacation mode can be enabled directly with schedule_mode, or planned with below dates
             time_t vacation_from; // utc
@@ -67,22 +77,21 @@ namespace esphome
             SettingsData(uint8_t *raw_data, uint16_t value_len) : DeviceData(16)
             {
                 uint8_t *settings = decrypt(raw_data, value_len);
-                uint8_t config_bits = settings[0];
 
-                this->adaptable_regulation = parse_bit(config_bits, 0);
-                this->vertical_intallation = parse_bit(config_bits, 2);
-                this->display_flip = parse_bit(config_bits, 3);
-                this->slow_regulation = parse_bit(config_bits, 4);
-                this->valve_installed = parse_bit(config_bits, 6);
-                this->lock_control = parse_bit(config_bits, 7);
+                this->settings_ = (uint8_t *)malloc(length);
+                memcpy(this->settings_, (const char *)settings, length);
+
                 this->temperature_min = settings[1] / 2.0f;
                 this->temperature_max = settings[2] / 2.0f;
                 this->frost_protection_temperature = settings[3] / 2.0f;
                 this->device_mode = to_climate_mode((DeviceMode)settings[4]);
                 this->vacation_temperature = settings[5] / 2.0f;
+
                 this->vacation_from = parse_int(settings, 6);
                 this->vacation_to = parse_int(settings, 10);
             }
+
+            ~SettingsData() { free(this->settings_); }
 
             climate::ClimateMode to_climate_mode(DeviceMode mode)
             {
@@ -104,33 +113,28 @@ namespace esphome
                 }
             }
 
-            uint8_t *pack()
+            void pack(uint8_t *buff)
             {
-                uint8_t buff[length] = {0};
-                set_bit(buff[0], 0, this->adaptable_regulation);
-                set_bit(buff[0], 2, this->vertical_intallation);
-                set_bit(buff[0], 3, this->display_flip);
-                set_bit(buff[0], 4, this->slow_regulation);
-                set_bit(buff[0], 6, this->valve_installed);
-                set_bit(buff[0], 7, this->lock_control);
+                memcpy(buff, (const char *)this->settings_, length);
 
                 buff[1] = (uint8_t)(this->temperature_min * 2);
                 buff[2] = (uint8_t)(this->temperature_max * 2);
                 buff[3] = (uint8_t)(this->frost_protection_temperature * 2);
-                buff[4] = device_mode; // FIXME
+                if (this->device_mode == climate::ClimateMode::CLIMATE_MODE_AUTO)
+                    buff[4] = DeviceMode::SCHEDULED;
+                else
+                    buff[4] = DeviceMode::MANUAL;
                 buff[5] = (uint8_t)(this->vacation_temperature * 2);
 
                 write_int(buff, 6, this->vacation_from);
                 write_int(buff, 10, this->vacation_to);
 
-                return encrypt(buff, sizeof(buff));
+                encrypt(buff, length);
             }
-        };
 
-        struct NameData : public DeviceData {        };
-        struct BatteryData : public DeviceData {        };
-        struct CurrentTimeData : public DeviceData {        };
-        
+        private:
+            uint8_t *settings_;
+        };
 
     } // namespace danfoss_eco
 } // namespace esphome
