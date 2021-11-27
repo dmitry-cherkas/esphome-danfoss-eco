@@ -43,15 +43,15 @@ namespace esphome
       while (cmd != nullptr)
       {
         bool success;
-        if (cmd->type == CommandType::READ)
-          success = cmd->property->read_request(this->parent());
+        if (cmd->type == CommandType::WRITE)
+          success = cmd->property->write_request(this->parent());
         else
-          success = cmd->property->write_request(this->parent(), cmd->data.get());
+          success = cmd->property->read_request(this->parent());
 
         if (success)
           this->request_counter_++;
 
-        delete cmd; // TODO: delete cmd->data ???
+        delete cmd;
         cmd = this->commands_.pop();
       }
 
@@ -68,16 +68,23 @@ namespace esphome
     {
       if (call.get_target_temperature().has_value())
       {
-        // this is new temprature we want to set
-        float new_target_temperature = *call.get_target_temperature();
+        TemperatureData &t_data = (TemperatureData &)(*this->p_temperature->data);
+        t_data.target_temperature = *call.get_target_temperature();
 
-        TemperatureData *data = new TemperatureData(new_target_temperature); // TODO: should I explicitly delete this?
-        this->commands_.push(new Command(CommandType::WRITE, this->p_temperature, data));
+        this->commands_.push(new Command(CommandType::WRITE, this->p_temperature));
         // initiate connection to the device
         connect();
       }
 
-      // TODO add mode switch (AUTO -> HEAT) - toggle between schedule and manual modes
+      if (call.get_mode().has_value())
+      {
+        SettingsData &s_data = (SettingsData &)(*this->p_settings->data);
+        s_data.device_mode = *call.get_mode();
+
+        this->commands_.push(new Command(CommandType::WRITE, this->p_settings));
+        // initiate connection to the device
+        connect();
+      }
     }
 
     ClimateTraits Device::traits()

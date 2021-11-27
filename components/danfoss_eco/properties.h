@@ -25,13 +25,15 @@ namespace esphome
         class DeviceProperty
         {
         public:
+            std::unique_ptr<DeviceData> data{nullptr};
+
             DeviceProperty(espbt::ESPBTUUID s_uuid, espbt::ESPBTUUID c_uuid) : service_uuid(s_uuid), characteristic_uuid(c_uuid) {}
 
             virtual void read(MyComponent *component, uint8_t *value, uint16_t value_len){};
 
             bool init_handle(esphome::ble_client::BLEClient *);
             bool read_request(esphome::ble_client::BLEClient *client);
-            bool write_request(esphome::ble_client::BLEClient *client, DeviceData *data);
+            bool write_request(esphome::ble_client::BLEClient *client);
             bool write_request(esphome::ble_client::BLEClient *client, uint8_t *data, uint16_t data_len);
 
             uint16_t handle;
@@ -65,17 +67,8 @@ namespace esphome
         class SettingsProperty : public DeviceProperty
         {
         public:
-            enum DeviceMode
-            {
-                MANUAL = 0,
-                SCHEDULED = 1,
-                VACATION = 3,
-                HOLD = 5 // TODO: what is the meaning of this mode?
-            };
-
             SettingsProperty() : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
-            climate::ClimateMode to_climate_mode(DeviceMode);
         };
 
         class CurrentTimeProperty : public DeviceProperty
@@ -91,15 +84,13 @@ namespace esphome
             WRITE
         };
 
-        class Command // read/write, target property, value to write
+        class Command
         {
         public:
             Command(CommandType t, DeviceProperty *p) : type(t), property(p) {}
-            Command(CommandType t, DeviceProperty *p, DeviceData *d) : type(t), property(p), data(d) {}
 
             CommandType type; // 0 - read, 1 - write
             DeviceProperty *property;
-            std::unique_ptr<DeviceData> data{nullptr};
         };
 
     } // namespace danfoss_eco

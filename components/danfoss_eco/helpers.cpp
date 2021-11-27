@@ -9,12 +9,12 @@ namespace esphome
 {
     namespace danfoss_eco
     {
-        uint8_t *parse_hex_str(const char *value, size_t str_len)
+        uint8_t *parse_hex_str(const char *data, size_t str_len)
         {
             size_t len = str_len / 2;
             uint8_t *buff = (uint8_t *)malloc(sizeof(uint8_t) * len);
             for (size_t i = 0; i < len; i++)
-                buff[i] = (parse_hex(value[i * 2]).value() << 4) | parse_hex(value[i * 2 + 1]).value();
+                buff[i] = (parse_hex(data[i * 2]).value() << 4) | parse_hex(data[i * 2 + 1]).value();
 
             return buff;
         }
@@ -24,9 +24,22 @@ namespace esphome
             return int(data[start_pos] << 24 | data[start_pos + 1] << 16 | data[start_pos + 2] << 8 | data[start_pos + 3]);
         }
 
-        bool parse_bit(uint8_t value, int pos)
+        void write_int(uint8_t *data, int start_pos, int value)
         {
-            return (value & (1 << pos)) >> pos;
+            data[start_pos] = value >> 24;
+            data[start_pos + 1] = value >> 16;
+            data[start_pos + 2] = value >> 8;
+            data[start_pos + 3] = value;
+        }
+
+        bool parse_bit(uint8_t data, int pos)
+        {
+            return (data & (1 << pos)) >> pos;
+        }
+
+        void set_bit(uint8_t data, int pos, bool value)
+        {
+            data ^= (-value ^ data) & (1UL << pos);
         }
 
         void reverse_chunks(uint8_t *data, int len, uint8_t *reversed_buf)

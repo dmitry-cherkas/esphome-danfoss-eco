@@ -58,8 +58,8 @@ namespace esphome
       DeviceProperty *p_pin{nullptr};
       DeviceProperty *p_name{nullptr};
       DeviceProperty *p_battery{nullptr};
-      DeviceProperty *p_temperature{nullptr};
-      DeviceProperty *p_settings{nullptr};
+      TemperatureProperty *p_temperature{nullptr};
+      SettingsProperty *p_settings{nullptr};
       DeviceProperty *p_current_time{nullptr};
       std::set<DeviceProperty *> properties{nullptr};
 

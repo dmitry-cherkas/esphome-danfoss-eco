@@ -50,9 +50,9 @@ namespace esphome
             return status == ESP_OK;
         }
 
-        bool DeviceProperty::write_request(esphome::ble_client::BLEClient *client, DeviceData *data)
+        bool DeviceProperty::write_request(esphome::ble_client::BLEClient *client)
         {
-            return this->write_request(client, data->pack(), data->length);
+            return this->write_request(client, this->data->pack(), this->data->length);
         }
 
         void NameProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
@@ -72,89 +72,44 @@ namespace esphome
 
         void TemperatureProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
-            auto data = TemperatureData(value, value_len);
-            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->parent()->address_str().c_str(), data.room_temperature, data.target_temperature);
-            component->temperature()->publish_state(data.room_temperature);
+            this->data.reset(new TemperatureData(value, value_len));
+            TemperatureData &t_data = (TemperatureData &)(*this->data);
+
+            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->parent()->address_str().c_str(), t_data.room_temperature, t_data.target_temperature);
+            component->temperature()->publish_state(t_data.room_temperature);
 
             // apply read configuration to the component
-            component->action = (data.room_temperature > data.target_temperature) ? climate::ClimateAction::CLIMATE_ACTION_IDLE : climate::ClimateAction::CLIMATE_ACTION_HEATING;
-            component->target_temperature = data.target_temperature;
-            component->current_temperature = data.room_temperature;
+            component->action = (t_data.room_temperature > t_data.target_temperature) ? climate::ClimateAction::CLIMATE_ACTION_IDLE : climate::ClimateAction::CLIMATE_ACTION_HEATING;
+            component->target_temperature = t_data.target_temperature;
+            component->current_temperature = t_data.room_temperature;
             component->publish_state();
         }
 
         void SettingsProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
-            uint8_t *settings = decrypt(value, value_len);
-            uint8_t config_bits = settings[0];
+            this->data.reset(new SettingsData(value, value_len));
+            SettingsData &s_data = (SettingsData &)(*this->data);
 
-            bool adaptable_regulation = parse_bit(config_bits, 0);
-            ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", component->parent()->address_str().c_str(), adaptable_regulation);
-
-            bool vertical_intallation = parse_bit(config_bits, 2);
-            ESP_LOGD(TAG, "[%s] vertical_intallation: %d", component->parent()->address_str().c_str(), vertical_intallation);
-
-            bool display_flip = parse_bit(config_bits, 3);
-            ESP_LOGD(TAG, "[%s] display_flip: %d", component->parent()->address_str().c_str(), display_flip);
-
-            bool slow_regulation = parse_bit(config_bits, 4);
-            ESP_LOGD(TAG, "[%s] slow_regulation: %d", component->parent()->address_str().c_str(), slow_regulation);
-
-            bool valve_installed = parse_bit(config_bits, 6);
-            ESP_LOGD(TAG, "[%s] valve_installed: %d", component->parent()->address_str().c_str(), valve_installed);
-
-            bool lock_control = parse_bit(config_bits, 7);
-            ESP_LOGD(TAG, "[%s] lock_control: %d", component->parent()->address_str().c_str(), lock_control);
-
-            float temperature_min = settings[1] / 2.0f;
-            ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", component->parent()->address_str().c_str(), temperature_min);
-
-            float temperature_max = settings[2] / 2.0f;
-            ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", component->parent()->address_str().c_str(), temperature_max);
-
-            float frost_protection_temperature = settings[3] / 2.0f;
-            ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", component->parent()->address_str().c_str(), frost_protection_temperature);
-            // TODO add frost_protection_temperature sensor (OR CONTROL?)
-
-            DeviceMode schedule_mode = (DeviceMode)settings[4];
-            ESP_LOGD(TAG, "[%s] schedule_mode: %d", component->parent()->address_str().c_str(), schedule_mode);
-            component->mode = to_climate_mode(schedule_mode);
-
-            float vacation_temperature = settings[5] / 2.0f;
-            ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", component->parent()->address_str().c_str(), vacation_temperature);
-            // TODO add vacation_temperature sensor (OR CONTROL?)
-
-            // vacation mode can be enabled directly with schedule_mode, or planned with below dates
-            int vacation_from = parse_int(settings, 6);
-            ESP_LOGD(TAG, "[%s] vacation_from: %d", component->parent()->address_str().c_str(), vacation_from);
-
-            int vacation_to = parse_int(settings, 10);
-            ESP_LOGD(TAG, "[%s] vacation_to: %d", component->parent()->address_str().c_str(), vacation_to);
+            const char *addr = component->parent()->address_str().c_str();
+            ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", addr, s_data.adaptable_regulation);
+            ESP_LOGD(TAG, "[%s] vertical_intallation: %d", addr, s_data.vertical_intallation);
+            ESP_LOGD(TAG, "[%s] display_flip: %d", addr, s_data.display_flip);
+            ESP_LOGD(TAG, "[%s] slow_regulation: %d", addr, s_data.slow_regulation);
+            ESP_LOGD(TAG, "[%s] valve_installed: %d", addr, s_data.valve_installed);
+            ESP_LOGD(TAG, "[%s] lock_control: %d", addr, s_data.lock_control);
+            ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", addr, s_data.temperature_min);
+            ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", addr, s_data.temperature_max);
+            ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", addr, s_data.frost_protection_temperature);
+            ESP_LOGD(TAG, "[%s] schedule_mode: %d", addr, s_data.device_mode);
+            ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", addr, s_data.vacation_temperature);
+            ESP_LOGD(TAG, "[%s] vacation_from: %d", addr, (int)s_data.vacation_from);
+            ESP_LOGD(TAG, "[%s] vacation_to: %d", addr, (int)s_data.vacation_to);
 
             // apply read configuration to the component
-            component->set_visual_min_temperature_override(temperature_min);
-            component->set_visual_max_temperature_override(temperature_max);
+            component->mode = s_data.device_mode;
+            component->set_visual_min_temperature_override(s_data.temperature_min);
+            component->set_visual_max_temperature_override(s_data.temperature_max);
             component->publish_state();
-        }
-
-        climate::ClimateMode SettingsProperty::to_climate_mode(DeviceMode schedule_mode)
-        {
-            switch (schedule_mode)
-            {
-            case DeviceMode::MANUAL:
-                return climate::ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
-
-            case DeviceMode::VACATION:
-            case DeviceMode::SCHEDULED:
-                return climate::ClimateMode::CLIMATE_MODE_AUTO;
-
-            case DeviceMode::HOLD:
-                return climate::ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
-
-            default:
-                ESP_LOGW(TAG, "unexpected schedule_mode: %d", schedule_mode);
-                return climate::ClimateMode::CLIMATE_MODE_HEAT; // unknown
-            }
         }
 
         void CurrentTimeProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
