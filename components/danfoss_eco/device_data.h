@@ -47,7 +47,7 @@ namespace esphome
                 MANUAL = 0,
                 SCHEDULED = 1,
                 VACATION = 3,
-                HOLD = 5 // TODO: what is the meaning of this mode?
+                HOLD = 5
             };
 
             bool get_adaptable_regulation() { return parse_bit(this->settings_[0], 0); }
@@ -98,18 +98,16 @@ namespace esphome
                 switch (mode)
                 {
                 case MANUAL:
-                    return climate::ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
+                case HOLD: // TODO: not sure, what HOLD represents
+                    return climate::ClimateMode::CLIMATE_MODE_HEAT;
 
                 case SCHEDULED:
                 case VACATION:
                     return climate::ClimateMode::CLIMATE_MODE_AUTO;
 
-                case DeviceMode::HOLD:
-                    return climate::ClimateMode::CLIMATE_MODE_HEAT; // TODO: or OFF, depending on current vs target temperature?
-
                 default:
                     ESP_LOGW(TAG, "unexpected schedule_mode: %d", mode);
-                    return climate::ClimateMode::CLIMATE_MODE_HEAT; // unknown
+                    return climate::ClimateMode::CLIMATE_MODE_HEAT; // reasonable default
                 }
             }
 

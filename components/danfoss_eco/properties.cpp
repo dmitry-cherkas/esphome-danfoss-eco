@@ -83,6 +83,7 @@ namespace esphome
             component->temperature()->publish_state(t_data->room_temperature);
 
             // apply read configuration to the component
+            // TODO component->action should consider "open window detection" feature of Danfoss Eco
             component->action = (t_data->room_temperature > t_data->target_temperature) ? climate::ClimateAction::CLIMATE_ACTION_IDLE : climate::ClimateAction::CLIMATE_ACTION_HEATING;
             component->target_temperature = t_data->target_temperature;
             component->current_temperature = t_data->room_temperature;
