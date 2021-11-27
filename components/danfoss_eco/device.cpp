@@ -185,9 +185,10 @@ namespace esphome
 
     void Device::on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param param)
     {
+      if (param.handle != this->p_pin->handle)
+        update();
     }
 
-    // Update is triggered by on defined polling interval (see PollingComponent) to trigger state update report
     void Device::update()
     {
       this->connect();
