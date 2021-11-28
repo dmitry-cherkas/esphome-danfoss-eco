@@ -1,5 +1,6 @@
 #include "esphome/components/climate/climate.h"
 #include "esphome/core/log.h"
+
 #include "properties.h"
 #include "helpers.h"
 
@@ -62,7 +63,7 @@ namespace esphome
         void NameProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             uint8_t *name = decrypt(this->xxtea_, value, value_len);
-            ESP_LOGD(TAG, "[%s] device name: %s", component->parent()->address_str().c_str(), name);
+            ESP_LOGD(TAG, "[%s] reported device name: %s", component->get_name().c_str(), name);
             // std::string name_str((char *)name);
             // this->set_name(name_str); TODO - this is too late
         }
@@ -70,7 +71,7 @@ namespace esphome
         void BatteryProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             uint8_t battery_level = value[0];
-            ESP_LOGD(TAG, "[%s] battery level: %d %%", component->parent()->address_str().c_str(), battery_level);
+            ESP_LOGD(TAG, "[%s] battery level: %d %%", component->get_name().c_str(), battery_level);
             if (component->battery_level() != nullptr)
                 component->battery_level()->publish_state(battery_level);
         }
@@ -80,7 +81,7 @@ namespace esphome
             auto t_data = new TemperatureData(this->xxtea_, value, value_len);
             this->data.reset(t_data);
 
-            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->parent()->address_str().c_str(), t_data->room_temperature, t_data->target_temperature);
+            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->get_name().c_str(), t_data->room_temperature, t_data->target_temperature);
             if (component->temperature() != nullptr)
                 component->temperature()->publish_state(t_data->room_temperature);
 
@@ -97,20 +98,20 @@ namespace esphome
             auto s_data = new SettingsData(this->xxtea_, value, value_len);
             this->data.reset(s_data);
 
-            const char *addr = component->parent()->address_str().c_str();
-            ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", addr, s_data->get_adaptable_regulation());
-            ESP_LOGD(TAG, "[%s] vertical_intallation: %d", addr, s_data->get_vertical_intallation());
-            ESP_LOGD(TAG, "[%s] display_flip: %d", addr, s_data->get_display_flip());
-            ESP_LOGD(TAG, "[%s] slow_regulation: %d", addr, s_data->get_slow_regulation());
-            ESP_LOGD(TAG, "[%s] valve_installed: %d", addr, s_data->get_valve_installed());
-            ESP_LOGD(TAG, "[%s] lock_control: %d", addr, s_data->get_lock_control());
-            ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", addr, s_data->temperature_min);
-            ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", addr, s_data->temperature_max);
-            ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", addr, s_data->frost_protection_temperature);
-            ESP_LOGD(TAG, "[%s] schedule_mode: %d", addr, s_data->device_mode);
-            ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", addr, s_data->vacation_temperature);
-            ESP_LOGD(TAG, "[%s] vacation_from: %d", addr, (int)s_data->vacation_from);
-            ESP_LOGD(TAG, "[%s] vacation_to: %d", addr, (int)s_data->vacation_to);
+            const char *name = component->get_name().c_str();
+            ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", name, s_data->get_adaptable_regulation());
+            ESP_LOGD(TAG, "[%s] vertical_intallation: %d", name, s_data->get_vertical_intallation());
+            ESP_LOGD(TAG, "[%s] display_flip: %d", name, s_data->get_display_flip());
+            ESP_LOGD(TAG, "[%s] slow_regulation: %d", name, s_data->get_slow_regulation());
+            ESP_LOGD(TAG, "[%s] valve_installed: %d", name, s_data->get_valve_installed());
+            ESP_LOGD(TAG, "[%s] lock_control: %d", name, s_data->get_lock_control());
+            ESP_LOGD(TAG, "[%s] temperature_min: %2.1f°C", name, s_data->temperature_min);
+            ESP_LOGD(TAG, "[%s] temperature_max: %2.1f°C", name, s_data->temperature_max);
+            ESP_LOGD(TAG, "[%s] frost_protection_temperature: %2.1f°C", name, s_data->frost_protection_temperature);
+            ESP_LOGD(TAG, "[%s] schedule_mode: %d", name, s_data->device_mode);
+            ESP_LOGD(TAG, "[%s] vacation_temperature: %2.1f°C", name, s_data->vacation_temperature);
+            ESP_LOGD(TAG, "[%s] vacation_from: %d", name, (int)s_data->vacation_from);
+            ESP_LOGD(TAG, "[%s] vacation_to: %d", name, (int)s_data->vacation_to);
 
             // apply read configuration to the component
             component->mode = s_data->device_mode;
@@ -124,7 +125,7 @@ namespace esphome
             uint8_t *current_time = decrypt(this->xxtea_, value, value_len);
             int local_time = parse_int(current_time, 0);
             int time_offset = parse_int(current_time, 4);
-            ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", component->parent()->address_str().c_str(), local_time, time_offset);
+            ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", component->get_name().c_str(), local_time, time_offset);
         }
     } // namespace danfoss_eco
 } // namespace esphome

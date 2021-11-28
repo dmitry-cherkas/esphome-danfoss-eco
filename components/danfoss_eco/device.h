@@ -1,12 +1,10 @@
 #pragma once
 
-#include "esphome/core/component.h"
-#include "esphome/components/sensor/sensor.h"
 #include "esphome/components/ble_client/ble_client.h"
-#include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/climate/climate.h"
 
 #include "helpers.h"
+#include "command.h"
 #include "properties.h"
 #include "my_component.h"
 #include "xxtea.h"
@@ -23,17 +21,13 @@ namespace esphome
     static uint8_t PIN_CODE_LENGTH = 4;
     static uint8_t default_pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
-    class Device : public MyComponent
+    class Device : public MyComponent, public esphome::ble_client::BLEClientNode
     {
     public:
       void setup() override;
       void loop() override;
       void update() override;
       void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) override;
-      void dump_config() override;
-      float get_setup_priority() const override { return setup_priority::DATA; }
-
-      climate::ClimateTraits traits() override;
 
       void set_secret_key(const char *);
       void set_pin_code(const std::string &);
@@ -57,11 +51,12 @@ namespace esphome
       std::shared_ptr<DeviceProperty> p_current_time{nullptr};
       std::set<std::shared_ptr<DeviceProperty>> properties{nullptr};
 
+    private:
       uint8_t *secret_;
       uint8_t *pin_code_;
 
       uint8_t request_counter_ = 0;
-      esphome::esp32_ble_tracker::Queue<Command> commands_;
+      CommandQueue commands_;
     };
 
   } // namespace danfoss_eco

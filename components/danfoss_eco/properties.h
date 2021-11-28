@@ -80,21 +80,5 @@ namespace esphome
             CurrentTimeProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_CURRENT_TIME, xxtea) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
-
-        enum class CommandType
-        {
-            READ,
-            WRITE
-        };
-
-        class Command
-        {
-        public:
-            Command(CommandType t, std::shared_ptr<DeviceProperty> const &p) : type(t), property(p) {}
-
-            CommandType type; // 0 - read, 1 - write
-            std::shared_ptr<DeviceProperty> property;
-        };
-
     } // namespace danfoss_eco
 } // namespace esphome

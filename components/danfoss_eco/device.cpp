@@ -6,20 +6,10 @@ namespace esphome
 {
   namespace danfoss_eco
   {
-
-    using namespace esphome::climate;
-
-    void Device::dump_config()
-    {
-      LOG_CLIMATE(TAG, "Danfoss Eco eTRV", this);
-      LOG_SENSOR(TAG, "Battery Level", this->battery_level_);
-      LOG_SENSOR(TAG, "Room Temperature", this->temperature_);
-    }
-
     void Device::setup()
     {
       // Setup encryption key
-      xxtea = std::make_shared<Xxtea>(this->secret_, SECRET_KEY_LENGTH);
+      this->xxtea = std::make_shared<Xxtea>(this->secret_, SECRET_KEY_LENGTH);
       if (xxtea->status() != XXTEA_STATUS_SUCCESS)
       {
         ESP_LOGE(TAG, "xxtea_setup_key failed, status: %d", xxtea->status());
@@ -97,19 +87,6 @@ namespace esphome
       }
     }
 
-    ClimateTraits Device::traits()
-    {
-      auto traits = ClimateTraits();
-      traits.set_supports_current_temperature(true);
-
-      traits.set_supported_modes(std::set<ClimateMode>({ClimateMode::CLIMATE_MODE_HEAT, ClimateMode::CLIMATE_MODE_AUTO}));
-      traits.set_visual_temperature_step(0.5);
-
-      traits.set_supports_current_temperature(true); // supports reporting current temperature
-      traits.set_supports_action(true);              // supports reporting current action
-      return traits;
-    }
-
     void Device::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param)
     {
       switch (event)
@@ -140,14 +117,13 @@ namespace esphome
         for (auto p : this->properties)
           p->init_handle(this->parent());
 
-        ESP_LOGI(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
+        ESP_LOGD(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
         this->p_pin->write_request(this->parent(), this->pin_code_, PIN_CODE_LENGTH); // FIXME: when PIN is enabled, this fails
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
         if (param->write.handle == this->p_pin->handle)
         {
-
           if (param->write.status != ESP_GATT_OK)
           {
             ESP_LOGE(TAG, "[%s] pin FAILED, status=%#04x", this->parent()->address_str().c_str(), param->write.status);
@@ -155,7 +131,7 @@ namespace esphome
           }
           else
           {
-            ESP_LOGI(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
+            ESP_LOGD(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
             this->node_state = espbt::ClientState::ESTABLISHED;
           }
           break;
@@ -171,19 +147,13 @@ namespace esphome
       case ESP_GATTC_READ_CHAR_EVT:
         this->request_counter_--;
         if (param->read.status != ESP_GATT_OK)
-        {
           ESP_LOGW(TAG, "[%s] failed to read characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
-          break;
-        }
         else
-        {
-          this->status_clear_warning();
           this->on_read(param->read);
-        }
         break;
 
       default:
-        ESP_LOGD(TAG, "[%s] unhandled event: event=%d, gattc_if=%d", this->parent()->address_str().c_str(), (int)event, gattc_if);
+        ESP_LOGV(TAG, "[%s] unhandled event: event=%d, gattc_if=%d", this->parent()->address_str().c_str(), (int)event, gattc_if);
         break;
       }
     }
