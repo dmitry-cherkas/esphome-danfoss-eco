@@ -87,6 +87,10 @@ namespace esphome
         SettingsData &s_data = (SettingsData &)(*this->p_settings->data);
         s_data.device_mode = *call.get_mode();
 
+        // update state immediately to avoid delays in HA UI
+        this->mode = s_data.device_mode;
+        this->publish_state();
+
         this->commands_.push(new Command(CommandType::WRITE, this->p_settings));
         // initiate connection to the device
         connect();
