@@ -60,6 +60,16 @@ namespace esphome
         disconnect();
     }
 
+    void Device::update()
+    {
+      this->connect();
+
+      this->commands_.push(new Command(CommandType::READ, this->p_name));
+      this->commands_.push(new Command(CommandType::READ, this->p_battery));
+      this->commands_.push(new Command(CommandType::READ, this->p_temperature));
+      this->commands_.push(new Command(CommandType::READ, this->p_settings));
+    }
+
     void Device::control(const ClimateCall &call)
     {
       if (call.get_target_temperature().has_value())
@@ -92,6 +102,9 @@ namespace esphome
       switch (event)
       {
       case ESP_GATTC_CONNECT_EVT:
+        if (memcmp(param->connect.remote_bda, this->parent()->remote_bda, 6) != 0)
+          return; // event does not belong to this client, exit gattc_event_handler
+
         ESP_LOGI(TAG, "[%s] connect, conn_id=%d", this->parent()->address_str().c_str(), param->connect.conn_id);
         break;
 
@@ -174,16 +187,6 @@ namespace esphome
     {
       if (param.handle != this->p_pin->handle)
         update();
-    }
-
-    void Device::update()
-    {
-      this->connect();
-
-      this->commands_.push(new Command(CommandType::READ, this->p_name));
-      this->commands_.push(new Command(CommandType::READ, this->p_battery));
-      this->commands_.push(new Command(CommandType::READ, this->p_temperature));
-      this->commands_.push(new Command(CommandType::READ, this->p_settings));
     }
 
     void Device::connect()
