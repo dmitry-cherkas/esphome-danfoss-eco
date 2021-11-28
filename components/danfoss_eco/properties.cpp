@@ -31,7 +31,7 @@ namespace esphome
                                                   this->handle,
                                                   ESP_GATT_AUTH_REQ_NONE);
             if (status != ESP_OK)
-                ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, status=%01x", client->address_str().c_str(), status);
+                ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, handle=%#04x, status=%01x", client->address_str().c_str(), this->handle, status);
 
             return status == ESP_OK;
         }
@@ -48,7 +48,7 @@ namespace esphome
                                                    ESP_GATT_WRITE_TYPE_RSP,
                                                    ESP_GATT_AUTH_REQ_NONE);
             if (status != ESP_OK)
-                ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, status=%01x", client->address_str().c_str(), status);
+                ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, handle=%#04x, status=%01x", client->address_str().c_str(), this->handle, status);
 
             return status == ESP_OK;
         }
