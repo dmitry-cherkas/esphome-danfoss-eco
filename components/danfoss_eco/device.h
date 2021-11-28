@@ -9,6 +9,7 @@
 #include "helpers.h"
 #include "properties.h"
 #include "my_component.h"
+#include "xxtea.h"
 
 #ifdef USE_ESP32
 
@@ -18,24 +19,13 @@ namespace esphome
 {
   namespace danfoss_eco
   {
+    static uint8_t SECRET_KEY_LENGTH = 16;
     static uint8_t PIN_CODE_LENGTH = 4;
     static uint8_t default_pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
     class Device : public MyComponent
     {
     public:
-      Device()
-      {
-        this->p_pin = new DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_PIN);
-        this->p_name = new NameProperty();
-        this->p_battery = new BatteryProperty();
-        this->p_temperature = new TemperatureProperty();
-        this->p_settings = new SettingsProperty();
-        this->p_current_time = new CurrentTimeProperty();
-
-        this->properties = {this->p_pin, this->p_name, this->p_battery, this->p_temperature, this->p_settings};
-      }
-
       void setup() override;
       void loop() override;
       void update() override;
@@ -57,13 +47,15 @@ namespace esphome
       void on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param);
       void on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param);
 
-      DeviceProperty *p_pin{nullptr};
-      DeviceProperty *p_name{nullptr};
-      DeviceProperty *p_battery{nullptr};
-      TemperatureProperty *p_temperature{nullptr};
-      SettingsProperty *p_settings{nullptr};
-      DeviceProperty *p_current_time{nullptr};
-      std::set<DeviceProperty *> properties{nullptr};
+      std::shared_ptr<Xxtea> xxtea{nullptr};
+
+      std::shared_ptr<DeviceProperty> p_pin{nullptr};
+      std::shared_ptr<DeviceProperty> p_name{nullptr};
+      std::shared_ptr<DeviceProperty> p_battery{nullptr};
+      std::shared_ptr<TemperatureProperty> p_temperature{nullptr};
+      std::shared_ptr<SettingsProperty> p_settings{nullptr};
+      std::shared_ptr<DeviceProperty> p_current_time{nullptr};
+      std::set<std::shared_ptr<DeviceProperty>> properties{nullptr};
 
       uint8_t *secret_;
       uint8_t *pin_code_;

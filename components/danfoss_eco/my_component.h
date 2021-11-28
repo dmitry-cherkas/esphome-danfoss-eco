@@ -5,9 +5,6 @@
 #include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/climate/climate.h"
 
-#include "helpers.h"
-#include "properties.h"
-
 namespace esphome
 {
     namespace danfoss_eco

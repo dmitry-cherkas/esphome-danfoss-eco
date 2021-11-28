@@ -27,7 +27,7 @@ namespace esphome
         public:
             std::unique_ptr<DeviceData> data{nullptr};
 
-            DeviceProperty(espbt::ESPBTUUID s_uuid, espbt::ESPBTUUID c_uuid) : service_uuid(s_uuid), characteristic_uuid(c_uuid) {}
+            DeviceProperty(espbt::ESPBTUUID s_uuid, espbt::ESPBTUUID c_uuid, std::shared_ptr<Xxtea> &xxtea) : service_uuid(s_uuid), characteristic_uuid(c_uuid), xxtea_(xxtea) {}
 
             virtual void read(MyComponent *component, uint8_t *value, uint16_t value_len){};
 
@@ -41,40 +41,43 @@ namespace esphome
         private:
             espbt::ESPBTUUID service_uuid;
             espbt::ESPBTUUID characteristic_uuid;
+
+        protected:
+            std::shared_ptr<Xxtea> xxtea_{nullptr};
         };
 
         class NameProperty : public DeviceProperty
         {
         public:
-            NameProperty() : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_NAME) {}
+            NameProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_NAME, xxtea) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
         class BatteryProperty : public DeviceProperty
         {
         public:
-            BatteryProperty() : DeviceProperty(SERVICE_BATTERY, CHARACTERISTIC_BATTERY) {}
+            BatteryProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(SERVICE_BATTERY, CHARACTERISTIC_BATTERY, xxtea) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
         class TemperatureProperty : public DeviceProperty
         {
         public:
-            TemperatureProperty() : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE) {}
+            TemperatureProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE, xxtea) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
         class SettingsProperty : public DeviceProperty
         {
         public:
-            SettingsProperty() : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS) {}
+            SettingsProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS, xxtea) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
         class CurrentTimeProperty : public DeviceProperty
         {
         public:
-            CurrentTimeProperty() : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_CURRENT_TIME) {}
+            CurrentTimeProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(SERVICE_SETTINGS, CHARACTERISTIC_CURRENT_TIME, xxtea) {}
             void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
@@ -87,10 +90,10 @@ namespace esphome
         class Command
         {
         public:
-            Command(CommandType t, DeviceProperty *p) : type(t), property(p) {}
+            Command(CommandType t, std::shared_ptr<DeviceProperty> const &p) : type(t), property(p) {}
 
             CommandType type; // 0 - read, 1 - write
-            DeviceProperty *property;
+            std::shared_ptr<DeviceProperty> property;
         };
 
     } // namespace danfoss_eco

@@ -1,5 +1,4 @@
 #include "device.h"
-#include <xxtea-lib.h>
 
 #ifdef USE_ESP32
 
@@ -20,13 +19,22 @@ namespace esphome
     void Device::setup()
     {
       // Setup encryption key
-      auto status = xxtea_setup_key(this->secret_, 16);
-      if (status != XXTEA_STATUS_SUCCESS)
+      xxtea = std::make_shared<Xxtea>(this->secret_, SECRET_KEY_LENGTH);
+      if (xxtea->status() != XXTEA_STATUS_SUCCESS)
       {
-        ESP_LOGE(TAG, "xxtea_setup_key failed, status: %d", status);
+        ESP_LOGE(TAG, "xxtea_setup_key failed, status: %d", xxtea->status());
         this->mark_failed();
         return;
       }
+
+      this->p_pin = std::make_shared<DeviceProperty>(SERVICE_SETTINGS, CHARACTERISTIC_PIN, xxtea);
+      this->p_name = std::make_shared<NameProperty>(xxtea);
+      this->p_battery = std::make_shared<BatteryProperty>(xxtea);
+      this->p_temperature = std::make_shared<TemperatureProperty>(xxtea);
+      this->p_settings = std::make_shared<SettingsProperty>(xxtea);
+      this->p_current_time = std::make_shared<CurrentTimeProperty>(xxtea);
+
+      this->properties = {this->p_pin, this->p_name, this->p_battery, this->p_temperature, this->p_settings};
 
       // pretend, we have already discovered the device
       copy_address(this->parent()->address, this->parent()->remote_bda);
@@ -148,7 +156,7 @@ namespace esphome
           }
           break;
         }
-        
+
         this->request_counter_--;
         if (param->write.status != ESP_GATT_OK)
           ESP_LOGW(TAG, "[%s] failed to write characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
@@ -179,7 +187,7 @@ namespace esphome
     void Device::on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param param)
     {
       auto device_property = std::find_if(properties.begin(), properties.end(),
-                                          [&param](DeviceProperty *p)
+                                          [&param](std::shared_ptr<DeviceProperty> p)
                                           { return p->handle == param.handle; });
 
       if (device_property != properties.end())

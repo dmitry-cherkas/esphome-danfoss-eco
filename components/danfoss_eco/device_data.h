@@ -2,6 +2,9 @@
 
 #include "esphome/core/log.h"
 
+#include "helpers.h"
+#include "xxtea.h"
+
 namespace esphome
 {
     namespace danfoss_eco
@@ -11,10 +14,13 @@ namespace esphome
             uint16_t length;
             virtual void pack(uint8_t *) = 0;
 
-            DeviceData(uint16_t l) : length(l) {}
+            DeviceData(uint16_t l, std::shared_ptr<Xxtea> &xxtea) : length(l), xxtea_(xxtea) {}
             virtual ~DeviceData()
             {
             }
+
+        protected:
+            std::shared_ptr<Xxtea> xxtea_;
         };
 
         struct TemperatureData : public DeviceData
@@ -22,11 +28,11 @@ namespace esphome
             float target_temperature;
             float room_temperature;
 
-            TemperatureData(float target_temperature) : DeviceData(8) { this->target_temperature = target_temperature; }
+            //TemperatureData(float target_temperature) : DeviceData(8) { this->target_temperature = target_temperature; }
 
-            TemperatureData(uint8_t *raw_data, uint16_t value_len) : DeviceData(8)
+            TemperatureData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(8, xxtea)
             {
-                uint8_t *temperatures = decrypt(raw_data, value_len);
+                uint8_t *temperatures = decrypt(this->xxtea_, raw_data, value_len);
                 this->target_temperature = temperatures[0] / 2.0f;
                 this->room_temperature = temperatures[1] / 2.0f;
             }
@@ -36,7 +42,7 @@ namespace esphome
                 buff[0] = (uint8_t)(target_temperature * 2);
                 buff[1] = (uint8_t)(room_temperature * 2);
 
-                encrypt(buff, length);
+                encrypt(this->xxtea_, buff, length);
             }
         };
 
@@ -74,9 +80,9 @@ namespace esphome
             time_t vacation_from; // utc
             time_t vacation_to;   // utc
 
-            SettingsData(uint8_t *raw_data, uint16_t value_len) : DeviceData(16)
+            SettingsData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(16, xxtea)
             {
-                uint8_t *settings = decrypt(raw_data, value_len);
+                uint8_t *settings = decrypt(this->xxtea_, raw_data, value_len);
 
                 this->settings_ = (uint8_t *)malloc(length);
                 memcpy(this->settings_, (const char *)settings, length);
@@ -127,7 +133,7 @@ namespace esphome
                 write_int(buff, 6, this->vacation_from);
                 write_int(buff, 10, this->vacation_to);
 
-                encrypt(buff, length);
+                encrypt(this->xxtea_, buff, length);
             }
 
         private:

@@ -61,7 +61,7 @@ namespace esphome
 
         void NameProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
-            uint8_t *name = decrypt(value, value_len);
+            uint8_t *name = decrypt(this->xxtea_, value, value_len);
             ESP_LOGD(TAG, "[%s] device name: %s", component->parent()->address_str().c_str(), name);
             // std::string name_str((char *)name);
             // this->set_name(name_str); TODO - this is too late
@@ -77,7 +77,7 @@ namespace esphome
 
         void TemperatureProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
-            auto t_data = new TemperatureData(value, value_len);
+            auto t_data = new TemperatureData(this->xxtea_, value, value_len);
             this->data.reset(t_data);
 
             ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->parent()->address_str().c_str(), t_data->room_temperature, t_data->target_temperature);
@@ -94,7 +94,7 @@ namespace esphome
 
         void SettingsProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
-            auto s_data = new SettingsData(value, value_len);
+            auto s_data = new SettingsData(this->xxtea_, value, value_len);
             this->data.reset(s_data);
 
             const char *addr = component->parent()->address_str().c_str();
@@ -121,7 +121,7 @@ namespace esphome
 
         void CurrentTimeProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
-            uint8_t *current_time = decrypt(value, value_len);
+            uint8_t *current_time = decrypt(this->xxtea_, value, value_len);
             int local_time = parse_int(current_time, 0);
             int time_offset = parse_int(current_time, 4);
             ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", component->parent()->address_str().c_str(), local_time, time_offset);

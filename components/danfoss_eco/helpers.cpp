@@ -1,8 +1,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include "helpers.h"
 
-#include <xxtea-lib.h>
+#include "helpers.h"
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 namespace esphome
@@ -54,12 +53,12 @@ namespace esphome
             }
         }
 
-        uint8_t *encrypt(uint8_t *value, uint16_t value_len)
+        uint8_t *encrypt(std::shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len)
         {
             uint8_t buffer[value_len], enc_buff[value_len];
             reverse_chunks(value, value_len, buffer);
 
-            auto xxtea_status = xxtea_encrypt(buffer, value_len, enc_buff, (size_t *)&value_len);
+            auto xxtea_status = xxtea->encrypt(buffer, value_len, enc_buff, (size_t *)&value_len);
             if (xxtea_status != XXTEA_STATUS_SUCCESS)
                 ESP_LOGW(TAG, "xxtea_encrypt failed, status=%d", xxtea_status);
             else
@@ -67,12 +66,12 @@ namespace esphome
             return value;
         }
 
-        uint8_t *decrypt(uint8_t *value, uint16_t value_len)
+        uint8_t *decrypt(std::shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len)
         {
             uint8_t buffer[value_len];
             reverse_chunks(value, value_len, buffer);
 
-            auto xxtea_status = xxtea_decrypt(buffer, value_len);
+            auto xxtea_status = xxtea->decrypt(buffer, value_len);
             if (xxtea_status != XXTEA_STATUS_SUCCESS)
                 ESP_LOGW(TAG, "xxtea_decrypt failed, status=%d", xxtea_status);
             else

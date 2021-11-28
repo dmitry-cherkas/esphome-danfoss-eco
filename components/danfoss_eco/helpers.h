@@ -1,5 +1,7 @@
 #pragma once
 
+#include "xxtea.h"
+
 #include <esp_bt_defs.h>
 
 namespace esphome
@@ -17,8 +19,8 @@ namespace esphome
 
         void reverse_chunks(uint8_t *data, int len, uint8_t *reversed_buf);
 
-        uint8_t *encrypt(uint8_t *value, uint16_t value_len);
-        uint8_t *decrypt(uint8_t *value, uint16_t value_len);
+        uint8_t *encrypt(std::shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len);
+        uint8_t *decrypt(std::shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len);
 
         void copy_address(uint64_t, esp_bd_addr_t);
     }
