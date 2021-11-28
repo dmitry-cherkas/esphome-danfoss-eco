@@ -28,8 +28,6 @@ namespace esphome
             float target_temperature;
             float room_temperature;
 
-            //TemperatureData(float target_temperature) : DeviceData(8) { this->target_temperature = target_temperature; }
-
             TemperatureData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(8, xxtea)
             {
                 uint8_t *temperatures = decrypt(this->xxtea_, raw_data, value_len);
