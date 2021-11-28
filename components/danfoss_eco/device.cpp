@@ -32,8 +32,11 @@ namespace esphome
 
     void Device::loop()
     {
-      if (this->is_failed())
-        disconnect();
+      if (this->status_has_error())
+      {
+        this->disconnect();
+        this->status_clear_error();
+      }
 
       if (this->node_state != espbt::ClientState::ESTABLISHED)
         return;
@@ -57,7 +60,7 @@ namespace esphome
       // once we are done with pending commands - check to see if there are any pending requests
       // if there are no pending requests - we are done with the device for now and should disconnect
       if (this->request_counter_ == 0)
-        disconnect();
+        this->disconnect();
     }
 
     void Device::update()
@@ -79,7 +82,7 @@ namespace esphome
 
         this->commands_.push(new Command(CommandType::WRITE, this->p_temperature));
         // initiate connection to the device
-        connect();
+        this->connect();
       }
 
       if (call.get_mode().has_value())
@@ -93,7 +96,7 @@ namespace esphome
 
         this->commands_.push(new Command(CommandType::WRITE, this->p_settings));
         // initiate connection to the device
-        connect();
+        this->connect();
       }
     }
 
@@ -131,7 +134,10 @@ namespace esphome
           p->init_handle(this->parent());
 
         ESP_LOGD(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
-        this->p_pin->write_request(this->parent(), this->pin_code_, PIN_CODE_LENGTH); // FIXME: when PIN is enabled, this fails
+        // FIXME: when PIN is enabled, this fails
+        if (!this->p_pin->write_request(this->parent(), this->pin_code_, PIN_CODE_LENGTH))
+          this->status_set_error();
+
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
@@ -140,6 +146,7 @@ namespace esphome
           if (param->write.status != ESP_GATT_OK)
           {
             ESP_LOGE(TAG, "[%s] pin FAILED, status=%#04x", this->parent()->address_str().c_str(), param->write.status);
+            this->disconnect();
             this->mark_failed();
           }
           else
