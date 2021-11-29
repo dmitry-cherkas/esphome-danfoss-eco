@@ -133,11 +133,7 @@ namespace esphome
         for (auto p : this->properties)
           p->init_handle(this->parent());
 
-        ESP_LOGD(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
-        // FIXME: when PIN is enabled, this fails
-        if (!this->p_pin->write_request(this->parent(), this->pin_code_, PIN_CODE_LENGTH))
-          this->status_set_error();
-
+        write_pin();
         break;
 
       case ESP_GATTC_WRITE_CHAR_EVT:
@@ -176,6 +172,17 @@ namespace esphome
         ESP_LOGV(TAG, "[%s] unhandled event: event=%d, gattc_if=%d", this->parent()->address_str().c_str(), (int)event, gattc_if);
         break;
       }
+    }
+
+    void Device::write_pin()
+    {
+      ESP_LOGD(TAG, "[%s] writing pin", this->parent()->address_str().c_str());
+
+      uint8_t pin_bytes[sizeof(uint32_t)];
+      write_int(pin_bytes, 0, this->pin_code_);
+
+      if (!this->p_pin->write_request(this->parent(), pin_bytes, sizeof(pin_bytes)))
+        this->status_set_error();
     }
 
     void Device::on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param param)
@@ -222,16 +229,8 @@ namespace esphome
     void Device::set_pin_code(const std::string &str)
     {
       if (str.length() > 0)
-      {
-        this->pin_code_ = (uint8_t *)malloc(str.length());
-        memcpy(this->pin_code_, (const char *)str.c_str(), str.length());
-      }
-      else
-      {
-        this->pin_code_ = default_pin_code;
-      }
-      std::string hex_str = hexencode(this->pin_code_, str.length());
-      ESP_LOGD(TAG, "[%s] PIN bytes: %s", this->parent()->address_str().c_str(), hex_str.c_str());
+        this->pin_code_ = atoi((const char *)str.c_str());
+      ESP_LOGD(TAG, "[%s] PIN: %04d", this->parent()->address_str().c_str(), this->pin_code_);
     }
 
     void Device::set_secret_key(const char *str)

@@ -37,6 +37,8 @@ def validate_pin(value):
     value = cv.string_strict(value)
     if len(value) != 4:
         raise cv.Invalid("PIN code should be exactly 4 chars")
+    if not value.isnumeric():
+        raise cv.Invalid("PIN code should be numeric")
     return value
 
 CONFIG_SCHEMA = (

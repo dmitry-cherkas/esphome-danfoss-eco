@@ -18,8 +18,6 @@ namespace esphome
   namespace danfoss_eco
   {
     static uint8_t SECRET_KEY_LENGTH = 16;
-    static uint8_t PIN_CODE_LENGTH = 4;
-    static uint8_t default_pin_code[] = {0x30, 0x30, 0x30, 0x30};
 
     class Device : public MyComponent, public esphome::ble_client::BLEClientNode
     {
@@ -38,6 +36,8 @@ namespace esphome
       void connect();
       void disconnect();
 
+      void write_pin();
+
       void on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param);
       void on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param);
 
@@ -53,7 +53,7 @@ namespace esphome
 
     private:
       uint8_t *secret_;
-      uint8_t *pin_code_;
+      uint32_t pin_code_ = 0;
 
       uint8_t request_counter_ = 0;
       CommandQueue commands_;
