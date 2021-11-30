@@ -12,6 +12,7 @@ __pycache__/
 
 # Intellij Idea
 .idea
+.vscode
 
 # Vim
 *.swp
