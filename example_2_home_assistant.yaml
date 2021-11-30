@@ -26,6 +26,7 @@ captive_portal:
 
 external_components:
   - source: github://dmitry-cherkas/esphome-danfoss-eco
+    ref: v1.0.0
 
 sensor:
   - platform: wifi_signal
