@@ -20,9 +20,7 @@ This platform uses the ESP32 BLE peripheral on ESP32, which means, ``ble_client`
 Simple configuration will look similar to this:
 
     external_components:
-      - source: github://dmitry-cherkas/esphome-danfoss-eco
-        # use Tag ref to fix component version
-        ref: v1.0.0
+      - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.0.0
 
     ble_client:
       - mac_address: 00:04:2f:xx:xx:xx
