@@ -6,38 +6,34 @@ esphome:
   libraries:
     - xxtea-iot-crypt@2.0.1
 
-# Enable logging
-logger:
-  level: DEBUG
-  logs:
-    esp32_ble_tracker: WARN
-    ble_client: WARN
-    wifi: INFO
-    logger: NONE
-
 # Enable Home Assistant API
 api:
-  password: ""
+  password: "generate-api-password"
 
 ota:
-  password: ""
+  password: "generate-ota-password"
 
 wifi:
-  ssid: "ssid"
-  password: "pass"
+  ssid: "my-ssid"
+  password: "my-password"
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Eco2-Room Fallback Hotspot"
-    password: "jgwPhdtTWG3m"
+    ssid: "My Room eTRV Fallback Hotspot"
+    password: "my-fallback-ap-password"
 
 captive_portal:
 
 external_components:
-  - source: components
+  - source: github://dmitry-cherkas/esphome-danfoss-eco
+
+sensor:
+  - platform: wifi_signal
+    name: "etrv2wifi WiFi Signal Strength"
+    update_interval: 60s
 
 ble_client:
-  - mac_address: 00:04:2f:40:57:b0
+  - mac_address: 00:04:2f:xx:xx:xx
     id: room_eco2
 
 climate:
@@ -45,7 +41,7 @@ climate:
     name: "My Room eTRV"
     ble_client_id: room_eco2
     pin_code: "0000"
-    secret_key: deadbeefcafebabedeadbeefcafebabe 
+    secret_key: deadbeefcafebabedeadbeefcafebabe
     battery_level:
       name: "My Room eTRV Battery Level"
     temperature:

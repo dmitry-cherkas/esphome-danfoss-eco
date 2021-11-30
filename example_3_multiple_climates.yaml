@@ -1,0 +1,36 @@
+esphome:
+  name: etrv2wifi
+  comment: Extend Danfoss ECO eTRV BLE range over WiFi with ESPHome
+  platform: ESP32
+  board: esp32dev
+  libraries:
+    - xxtea-iot-crypt@2.0.1
+
+wifi:
+  ssid: "my-ssid"
+  password: "my-password"
+
+external_components:
+  - source: github://dmitry-cherkas/esphome-danfoss-eco
+
+ble_client:
+  - mac_address: 00:04:2f:xx:xx:xx
+    id: room_eco2
+  - mac_address: 00:04:2f:yy:yy:yy
+    id: kitchen_eco2
+
+climate:
+  - platform: danfoss_eco
+    name: "My Room eTRV"
+    ble_client_id: room_eco2
+    secret_key: deadbeefcafebabedeadbeefcafebabe
+    battery_level:
+      name: "My Room eTRV Battery Level"
+    update_interval: 15min
+  - platform: danfoss_eco
+    name: "My Kitchen eTRV"
+    ble_client_id: kitchen_eco2
+    secret_key: deadbeefcafebabedeadbeefcafebabe 
+    battery_level:
+      name: "My Kitchen eTRV Battery Level"
+    update_interval: 16min
