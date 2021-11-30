@@ -18,25 +18,24 @@ This platform uses the ESP32 BLE peripheral on ESP32, which means, ``ble_client`
 > This can be done with other tools, check [here](https://github.com/keton/etrv2mqtt) and [here](https://github.com/HBDK/Eco2-Tools).
 
 Simple configuration will look similar to this:
-
-    external_components:
-      - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.0.0
-
-    ble_client:
-      - mac_address: 00:04:2f:xx:xx:xx
-        id: room_eco2
-
-    climate:
-      - platform: danfoss_eco
-        name: "My Room eTRV"
-        ble_client_id: room_eco2
-        pin_code: "0000"
-        secret_key: deadbeefcafebabedeadbeefcafebabe 
-        battery_level:
-          name: "My Room eTRV Battery Level"
-        temperature:
-          name: "My Room eTRV Temperature"
-        update_interval: 30min
+```yaml
+external_components:
+  - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.0.
+ble_client:
+  - mac_address: 00:04:2f:xx:xx:xx
+    id: room_eco
+climate:
+  - platform: danfoss_eco
+    name: "My Room eTRV"
+    ble_client_id: room_eco2
+    pin_code: "0000"
+    secret_key: deadbeefcafebabedeadbeefcafebabe 
+    battery_level:
+      name: "My Room eTRV Battery Level"
+    temperature:
+      name: "My Room eTRV Temperature"
+    update_interval: 30min
+```
 
 Configuration variables:
 ------------------------
