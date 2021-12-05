@@ -52,6 +52,8 @@ See Also
 --------
 
 This component is based on the work of other authors:
-* https://github.com/AdamStrojek/libetrv (with additional features from https://github.com/spin83/libetrv fork)
-* https://github.com/keton/etrv2mqtt
-* https://github.com/HBDK/Eco2-Tools
+* [AdamStrojek libetrv](https://github.com/AdamStrojek/libetrv) (with additional features from [spin83](https://github.com/spin83/libetrv) fork)
+* MQTT bridge for Danfoss eTRV by [keton](https://github.com/keton/etrv2mqtt) and Home Assistant add-on by [HBDK](https://github.com/HBDK/Eco2-Tools)
+
+Other implementations:
+* [Source code](https://github.com/dsltip/Danfoss-BLE) for controlling Danfoss ECO via cc2541 as a gateway from the desktop PC.
