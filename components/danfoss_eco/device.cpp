@@ -18,13 +18,11 @@ namespace esphome
       }
 
       this->p_pin = std::make_shared<DeviceProperty>(SERVICE_SETTINGS, CHARACTERISTIC_PIN, xxtea);
-      this->p_name = std::make_shared<NameProperty>(xxtea);
       this->p_battery = std::make_shared<BatteryProperty>(xxtea);
       this->p_temperature = std::make_shared<TemperatureProperty>(xxtea);
       this->p_settings = std::make_shared<SettingsProperty>(xxtea);
-      this->p_current_time = std::make_shared<CurrentTimeProperty>(xxtea);
 
-      this->properties = {this->p_pin, this->p_name, this->p_battery, this->p_temperature, this->p_settings};
+      this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings};
 
       // pretend, we have already discovered the device
       copy_address(this->parent()->address, this->parent()->remote_bda);
@@ -67,7 +65,6 @@ namespace esphome
     {
       this->connect();
 
-      this->commands_.push(new Command(CommandType::READ, this->p_name));
       this->commands_.push(new Command(CommandType::READ, this->p_battery));
       this->commands_.push(new Command(CommandType::READ, this->p_temperature));
       this->commands_.push(new Command(CommandType::READ, this->p_settings));

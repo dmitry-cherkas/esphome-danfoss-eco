@@ -44,11 +44,9 @@ namespace esphome
       std::shared_ptr<Xxtea> xxtea{nullptr};
 
       std::shared_ptr<DeviceProperty> p_pin{nullptr};
-      std::shared_ptr<DeviceProperty> p_name{nullptr};
-      std::shared_ptr<DeviceProperty> p_battery{nullptr};
+      std::shared_ptr<BatteryProperty> p_battery{nullptr};
       std::shared_ptr<TemperatureProperty> p_temperature{nullptr};
       std::shared_ptr<SettingsProperty> p_settings{nullptr};
-      std::shared_ptr<DeviceProperty> p_current_time{nullptr};
       std::set<std::shared_ptr<DeviceProperty>> properties{nullptr};
 
     private:

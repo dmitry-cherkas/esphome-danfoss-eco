@@ -60,14 +60,6 @@ namespace esphome
             return this->write_request(client, buff, sizeof(buff));
         }
 
-        void NameProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
-        {
-            uint8_t *name = decrypt(this->xxtea_, value, value_len);
-            ESP_LOGD(TAG, "[%s] reported device name: %s", component->get_name().c_str(), name);
-            // std::string name_str((char *)name);
-            // this->set_name(name_str); TODO - this is too late
-        }
-
         void BatteryProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             uint8_t battery_level = value[0];
@@ -120,13 +112,6 @@ namespace esphome
             component->publish_state();
         }
 
-        void CurrentTimeProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
-        {
-            uint8_t *current_time = decrypt(this->xxtea_, value, value_len);
-            int local_time = parse_int(current_time, 0);
-            int time_offset = parse_int(current_time, 4);
-            ESP_LOGD(TAG, "[%s] local_time: %d, time_offset: %d", component->get_name().c_str(), local_time, time_offset);
-        }
     } // namespace danfoss_eco
 } // namespace esphome
 
