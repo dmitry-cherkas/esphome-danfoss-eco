@@ -125,6 +125,7 @@ namespace esphome
             ESP_LOGD(TAG, "[%s] E14_LOW_BATTERY: %d", name, e_data->E14_LOW_BATTERY);
             ESP_LOGD(TAG, "[%s] E15_VERY_LOW_BATTERY: %d", name, e_data->E15_VERY_LOW_BATTERY);
 
+            // TODO: it would be great to add actual error code to binary_sensor state attributes, but I'm not sure how to achieve that
             if (component->problems() != nullptr)
                 component->problems()->publish_state(e_data->E9_VALVE_DOES_NOT_CLOSE || e_data->E10_INVALID_TIME || e_data->E14_LOW_BATTERY || e_data->E15_VERY_LOW_BATTERY);
         }

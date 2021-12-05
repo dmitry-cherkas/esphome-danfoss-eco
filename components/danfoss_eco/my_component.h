@@ -51,8 +51,6 @@ namespace esphome
             sensor::Sensor *battery_level_{nullptr};
             sensor::Sensor *temperature_{nullptr};
             binary_sensor::BinarySensor *problems_{nullptr};
-            // TODO add frost_protection_temperature sensor (OR CONTROL?)
-            // TODO add vacation_temperature sensor (OR CONTROL?)
         };
 
     } // namespace danfoss_eco
