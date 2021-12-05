@@ -61,7 +61,7 @@ namespace esphome
             return this->write_request(client, buff, sizeof(buff));
         }
 
-        void BatteryProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void BatteryProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             uint8_t battery_level = value[0];
             ESP_LOGD(TAG, "[%s] battery level: %d %%", component->get_name().c_str(), battery_level);
@@ -69,7 +69,7 @@ namespace esphome
                 component->battery_level()->publish_state(battery_level);
         }
 
-        void TemperatureProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void TemperatureProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             auto t_data = new TemperatureData(this->xxtea_, value, value_len);
             this->data.reset(t_data);
@@ -86,7 +86,7 @@ namespace esphome
             component->publish_state();
         }
 
-        void SettingsProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void SettingsProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             auto s_data = new SettingsData(this->xxtea_, value, value_len);
             this->data.reset(s_data);
@@ -113,7 +113,7 @@ namespace esphome
             component->publish_state();
         }
 
-        void ErrorsProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void ErrorsProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
         {
             auto e_data = new ErrorsData(this->xxtea_, value, value_len);
             this->data.reset(e_data);

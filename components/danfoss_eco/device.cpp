@@ -185,7 +185,7 @@ namespace esphome
                                           { return p->handle == param.handle; });
 
       if (device_property != properties.end())
-        (*device_property)->read(this, param.value, param.value_len);
+        (*device_property)->update_state(this, param.value, param.value_len);
       else
         ESP_LOGW(TAG, "[%s] unknown property with handle=%#04x", this->parent()->address_str().c_str(), param.handle);
     }

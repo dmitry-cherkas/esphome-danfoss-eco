@@ -28,7 +28,7 @@ namespace esphome
 
             DeviceProperty(std::shared_ptr<Xxtea> &xxtea, espbt::ESPBTUUID s_uuid, espbt::ESPBTUUID c_uuid) : xxtea_(xxtea), service_uuid(s_uuid), characteristic_uuid(c_uuid) {}
 
-            virtual void read(MyComponent *component, uint8_t *value, uint16_t value_len){};
+            virtual void update_state(MyComponent *component, uint8_t *value, uint16_t value_len){};
 
             bool init_handle(esphome::ble_client::BLEClient *);
             bool read_request(esphome::ble_client::BLEClient *client);
@@ -56,28 +56,28 @@ namespace esphome
         {
         public:
             BatteryProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(xxtea, SERVICE_BATTERY, CHARACTERISTIC_BATTERY) {}
-            void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
         class TemperatureProperty : public WritableProperty
         {
         public:
             TemperatureProperty(std::shared_ptr<Xxtea> &xxtea) : WritableProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE) {}
-            void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
         class SettingsProperty : public WritableProperty
         {
         public:
             SettingsProperty(std::shared_ptr<Xxtea> &xxtea) : WritableProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS) {}
-            void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
         class ErrorsProperty : public DeviceProperty
         {
         public:
             ErrorsProperty(std::shared_ptr<Xxtea> &xxtea) : DeviceProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_ERRORS) {}
-            void read(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
         };
 
     } // namespace danfoss_eco
