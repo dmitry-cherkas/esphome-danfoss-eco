@@ -55,7 +55,7 @@ namespace esphome
 
         bool WritableProperty::write_request(esphome::ble_client::BLEClient *client)
         {
-            WritableData* writableData = static_cast<WritableData*>(this->data.get());
+            WritableData *writableData = static_cast<WritableData *>(this->data.get());
             uint8_t buff[this->data->length]{0};
             writableData->pack(buff);
             return this->write_request(client, buff, sizeof(buff));
@@ -124,6 +124,9 @@ namespace esphome
             ESP_LOGD(TAG, "[%s] E10_INVALID_TIME: %d", name, e_data->E10_INVALID_TIME);
             ESP_LOGD(TAG, "[%s] E14_LOW_BATTERY: %d", name, e_data->E14_LOW_BATTERY);
             ESP_LOGD(TAG, "[%s] E15_VERY_LOW_BATTERY: %d", name, e_data->E15_VERY_LOW_BATTERY);
+
+            if (component->problems() != nullptr)
+                component->problems()->publish_state(e_data->E9_VALVE_DOES_NOT_CLOSE || e_data->E10_INVALID_TIME || e_data->E14_LOW_BATTERY || e_data->E15_VERY_LOW_BATTERY);
         }
 
     } // namespace danfoss_eco
