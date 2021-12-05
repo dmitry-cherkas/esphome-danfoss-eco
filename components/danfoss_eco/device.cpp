@@ -17,12 +17,13 @@ namespace esphome
         return;
       }
 
-      this->p_pin = std::make_shared<DeviceProperty>(SERVICE_SETTINGS, CHARACTERISTIC_PIN, xxtea);
+      this->p_pin = std::make_shared<WritableProperty>(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_PIN);
       this->p_battery = std::make_shared<BatteryProperty>(xxtea);
       this->p_temperature = std::make_shared<TemperatureProperty>(xxtea);
       this->p_settings = std::make_shared<SettingsProperty>(xxtea);
+      this->p_errors = std::make_shared<ErrorsProperty>(xxtea);
 
-      this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings};
+      this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings, this->p_errors};
 
       // pretend, we have already discovered the device
       copy_address(this->parent()->address, this->parent()->remote_bda);
@@ -42,13 +43,7 @@ namespace esphome
       Command *cmd = this->commands_.pop();
       while (cmd != nullptr)
       {
-        bool success;
-        if (cmd->type == CommandType::WRITE)
-          success = cmd->property->write_request(this->parent());
-        else
-          success = cmd->property->read_request(this->parent());
-
-        if (success)
+        if (cmd->execute(this->parent()))
           this->request_counter_++;
 
         delete cmd;
@@ -68,6 +63,7 @@ namespace esphome
       this->commands_.push(new Command(CommandType::READ, this->p_battery));
       this->commands_.push(new Command(CommandType::READ, this->p_temperature));
       this->commands_.push(new Command(CommandType::READ, this->p_settings));
+      this->commands_.push(new Command(CommandType::READ, this->p_errors));
     }
 
     void Device::control(const ClimateCall &call)

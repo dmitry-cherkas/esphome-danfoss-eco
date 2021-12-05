@@ -9,10 +9,10 @@ namespace esphome
 {
     namespace danfoss_eco
     {
+
         struct DeviceData
         {
             uint16_t length;
-            virtual void pack(uint8_t *) = 0;
 
             DeviceData(uint16_t l, std::shared_ptr<Xxtea> &xxtea) : length(l), xxtea_(xxtea) {}
             virtual ~DeviceData()
@@ -23,12 +23,18 @@ namespace esphome
             std::shared_ptr<Xxtea> xxtea_;
         };
 
-        struct TemperatureData : public DeviceData
+        struct WritableData : public DeviceData
+        {
+            WritableData(uint16_t l, std::shared_ptr<Xxtea> &xxtea) : DeviceData(8, xxtea) {}
+            virtual void pack(uint8_t *) = 0;
+        };
+
+        struct TemperatureData : public WritableData
         {
             float target_temperature;
             float room_temperature;
 
-            TemperatureData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(8, xxtea)
+            TemperatureData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : WritableData(8, xxtea)
             {
                 uint8_t *temperatures = decrypt(this->xxtea_, raw_data, value_len);
                 this->target_temperature = temperatures[0] / 2.0f;
@@ -44,7 +50,7 @@ namespace esphome
             }
         };
 
-        struct SettingsData : public DeviceData
+        struct SettingsData : public WritableData
         {
             enum DeviceMode
             {
@@ -78,7 +84,7 @@ namespace esphome
             time_t vacation_from; // utc
             time_t vacation_to;   // utc
 
-            SettingsData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(16, xxtea)
+            SettingsData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : WritableData(16, xxtea)
             {
                 uint8_t *settings = decrypt(this->xxtea_, raw_data, value_len);
 
@@ -136,6 +142,26 @@ namespace esphome
 
         private:
             uint8_t *settings_;
+        };
+
+        struct ErrorsData : public DeviceData
+        {
+            bool E9_VALVE_DOES_NOT_CLOSE;
+            bool E10_INVALID_TIME;
+            bool E14_LOW_BATTERY;
+            bool E15_VERY_LOW_BATTERY;
+
+            ErrorsData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(8, xxtea)
+            {
+                // unsigned short error;
+                // unsigned char padding[6];
+                uint16_t errors = parse_short(decrypt(this->xxtea_, raw_data, value_len), 0);
+
+                E9_VALVE_DOES_NOT_CLOSE = parse_bit(errors, 8);
+                E10_INVALID_TIME = parse_bit(errors, 9);
+                E14_LOW_BATTERY = parse_bit(errors, 13);
+                E15_VERY_LOW_BATTERY = parse_bit(errors, 14);
+            }
         };
 
     } // namespace danfoss_eco

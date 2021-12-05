@@ -36,7 +36,7 @@ namespace esphome
             return status == ESP_OK;
         }
 
-        bool DeviceProperty::write_request(esphome::ble_client::BLEClient *client, uint8_t *data, uint16_t data_len)
+        bool WritableProperty::write_request(esphome::ble_client::BLEClient *client, uint8_t *data, uint16_t data_len)
         {
             ESP_LOGD(TAG, "[%s] write_request: handle=%#04x, data=%s", client->address_str().c_str(), this->handle, hexencode(data, data_len).c_str());
 
@@ -53,10 +53,11 @@ namespace esphome
             return status == ESP_OK;
         }
 
-        bool DeviceProperty::write_request(esphome::ble_client::BLEClient *client)
+        bool WritableProperty::write_request(esphome::ble_client::BLEClient *client)
         {
+            WritableData* writableData = static_cast<WritableData*>(this->data.get());
             uint8_t buff[this->data->length]{0};
-            this->data->pack(buff);
+            writableData->pack(buff);
             return this->write_request(client, buff, sizeof(buff));
         }
 
@@ -110,6 +111,19 @@ namespace esphome
             component->set_visual_min_temperature_override(s_data->temperature_min);
             component->set_visual_max_temperature_override(s_data->temperature_max);
             component->publish_state();
+        }
+
+        void ErrorsProperty::read(MyComponent *component, uint8_t *value, uint16_t value_len)
+        {
+            auto e_data = new ErrorsData(this->xxtea_, value, value_len);
+            this->data.reset(e_data);
+
+            const char *name = component->get_name().c_str();
+
+            ESP_LOGD(TAG, "[%s] E9_VALVE_DOES_NOT_CLOSE: %d", name, e_data->E9_VALVE_DOES_NOT_CLOSE);
+            ESP_LOGD(TAG, "[%s] E10_INVALID_TIME: %d", name, e_data->E10_INVALID_TIME);
+            ESP_LOGD(TAG, "[%s] E14_LOW_BATTERY: %d", name, e_data->E14_LOW_BATTERY);
+            ESP_LOGD(TAG, "[%s] E15_VERY_LOW_BATTERY: %d", name, e_data->E15_VERY_LOW_BATTERY);
         }
 
     } // namespace danfoss_eco

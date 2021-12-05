@@ -11,10 +11,12 @@ namespace esphome
         const char *const TAG = "danfoss_eco";
 
         uint8_t *parse_hex_str(const char *data, size_t str_len);
-        int parse_int(uint8_t *data, int start_pos);
+        uint32_t parse_int(uint8_t *data, int start_pos);
+        uint16_t parse_short(uint8_t *data, int start_pos);
         void write_int(uint8_t *data, int start_pos, int value);
 
         bool parse_bit(uint8_t data, int pos);
+        bool parse_bit(uint16_t data, int pos);
         void set_bit(uint8_t data, int pos, bool value);
 
         void reverse_chunks(uint8_t *data, int len, uint8_t *reversed_buf);

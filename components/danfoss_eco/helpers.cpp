@@ -18,9 +18,14 @@ namespace esphome
             return buff;
         }
 
-        int parse_int(uint8_t *data, int start_pos)
+        uint32_t parse_int(uint8_t *data, int start_pos)
         {
             return int(data[start_pos] << 24 | data[start_pos + 1] << 16 | data[start_pos + 2] << 8 | data[start_pos + 3]);
+        }
+
+        uint16_t parse_short(uint8_t *data, int start_pos)
+        {
+            return short(data[start_pos] << 8 | data[start_pos + 1]);
         }
 
         void write_int(uint8_t *data, int start_pos, int value)
@@ -31,10 +36,9 @@ namespace esphome
             data[start_pos + 3] = value;
         }
 
-        bool parse_bit(uint8_t data, int pos)
-        {
-            return (data & (1 << pos)) >> pos;
-        }
+        bool parse_bit(uint8_t data, int pos) { return (data & (1 << pos)) >> pos; }
+
+        bool parse_bit(uint16_t data, int pos) { return (data & (1 << pos)) >> pos; }
 
         void set_bit(uint8_t data, int pos, bool value)
         {
