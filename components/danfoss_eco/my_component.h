@@ -11,7 +11,10 @@ namespace esphome
 {
     namespace danfoss_eco
     {
+        using namespace std;
         using namespace esphome::climate;
+        using namespace esphome::sensor;
+        using namespace esphome::binary_sensor;
 
         class MyComponent : public Climate, public PollingComponent
         {
@@ -31,7 +34,7 @@ namespace esphome
                 auto traits = ClimateTraits();
                 traits.set_supports_current_temperature(true);
 
-                traits.set_supported_modes(std::set<ClimateMode>({ClimateMode::CLIMATE_MODE_HEAT, ClimateMode::CLIMATE_MODE_AUTO}));
+                traits.set_supported_modes(set<ClimateMode>({ClimateMode::CLIMATE_MODE_HEAT, ClimateMode::CLIMATE_MODE_AUTO}));
                 traits.set_visual_temperature_step(0.5);
 
                 traits.set_supports_current_temperature(true); // supports reporting current temperature
@@ -39,18 +42,18 @@ namespace esphome
                 return traits;
             }
 
-            void set_battery_level(sensor::Sensor *battery_level) { battery_level_ = battery_level; }
-            void set_temperature(sensor::Sensor *temperature) { temperature_ = temperature; }
-            void set_problems(binary_sensor::BinarySensor *problems) { problems_ = problems; }
+            void set_battery_level(Sensor *battery_level) { battery_level_ = battery_level; }
+            void set_temperature(Sensor *temperature) { temperature_ = temperature; }
+            void set_problems(BinarySensor *problems) { problems_ = problems; }
 
-            sensor::Sensor *battery_level() { return this->battery_level_; }
-            sensor::Sensor *temperature() { return this->temperature_; }
-            binary_sensor::BinarySensor *problems() { return this->problems_; }
+            Sensor *battery_level() { return this->battery_level_; }
+            Sensor *temperature() { return this->temperature_; }
+            BinarySensor *problems() { return this->problems_; }
 
         protected:
-            sensor::Sensor *battery_level_{nullptr};
-            sensor::Sensor *temperature_{nullptr};
-            binary_sensor::BinarySensor *problems_{nullptr};
+            Sensor *battery_level_{nullptr};
+            Sensor *temperature_{nullptr};
+            BinarySensor *problems_{nullptr};
         };
 
     } // namespace danfoss_eco

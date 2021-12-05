@@ -9,23 +9,25 @@ namespace esphome
 {
     namespace danfoss_eco
     {
+        using namespace std;
+        using namespace climate;
 
         struct DeviceData
         {
             uint16_t length;
 
-            DeviceData(uint16_t l, std::shared_ptr<Xxtea> &xxtea) : length(l), xxtea_(xxtea) {}
+            DeviceData(uint16_t l, shared_ptr<Xxtea> &xxtea) : length(l), xxtea_(xxtea) {}
             virtual ~DeviceData()
             {
             }
 
         protected:
-            std::shared_ptr<Xxtea> xxtea_;
+            shared_ptr<Xxtea> xxtea_;
         };
 
         struct WritableData : public DeviceData
         {
-            WritableData(uint16_t l, std::shared_ptr<Xxtea> &xxtea) : DeviceData(8, xxtea) {}
+            WritableData(uint16_t l, shared_ptr<Xxtea> &xxtea) : DeviceData(8, xxtea) {}
             virtual void pack(uint8_t *) = 0;
         };
 
@@ -34,7 +36,7 @@ namespace esphome
             float target_temperature;
             float room_temperature;
 
-            TemperatureData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : WritableData(8, xxtea)
+            TemperatureData(shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : WritableData(8, xxtea)
             {
                 uint8_t *temperatures = decrypt(this->xxtea_, raw_data, value_len);
                 this->target_temperature = temperatures[0] / 2.0f;
@@ -74,7 +76,7 @@ namespace esphome
             void set_valve_installed(bool state) { set_bit(this->settings_[0], 6, state); }
             void set_lock_control(bool state) { set_bit(this->settings_[0], 7, state); }
 
-            climate::ClimateMode device_mode;
+            ClimateMode device_mode;
 
             float temperature_min;
             float temperature_max;
@@ -84,7 +86,7 @@ namespace esphome
             time_t vacation_from; // utc
             time_t vacation_to;   // utc
 
-            SettingsData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : WritableData(16, xxtea)
+            SettingsData(shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : WritableData(16, xxtea)
             {
                 uint8_t *settings = decrypt(this->xxtea_, raw_data, value_len);
 
@@ -103,21 +105,21 @@ namespace esphome
 
             ~SettingsData() { free(this->settings_); }
 
-            climate::ClimateMode to_climate_mode(DeviceMode mode)
+            ClimateMode to_climate_mode(DeviceMode mode)
             {
                 switch (mode)
                 {
                 case MANUAL:
                 case HOLD: // TODO: not sure, what HOLD represents
-                    return climate::ClimateMode::CLIMATE_MODE_HEAT;
+                    return ClimateMode::CLIMATE_MODE_HEAT;
 
                 case SCHEDULED:
                 case VACATION:
-                    return climate::ClimateMode::CLIMATE_MODE_AUTO;
+                    return ClimateMode::CLIMATE_MODE_AUTO;
 
                 default:
                     ESP_LOGW(TAG, "unexpected schedule_mode: %d", mode);
-                    return climate::ClimateMode::CLIMATE_MODE_HEAT; // reasonable default
+                    return ClimateMode::CLIMATE_MODE_HEAT; // reasonable default
                 }
             }
 
@@ -128,7 +130,7 @@ namespace esphome
                 buff[1] = (uint8_t)(this->temperature_min * 2);
                 buff[2] = (uint8_t)(this->temperature_max * 2);
                 buff[3] = (uint8_t)(this->frost_protection_temperature * 2);
-                if (this->device_mode == climate::ClimateMode::CLIMATE_MODE_AUTO)
+                if (this->device_mode == ClimateMode::CLIMATE_MODE_AUTO)
                     buff[4] = DeviceMode::SCHEDULED;
                 else
                     buff[4] = DeviceMode::MANUAL;
@@ -151,7 +153,7 @@ namespace esphome
             bool E14_LOW_BATTERY;
             bool E15_VERY_LOW_BATTERY;
 
-            ErrorsData(std::shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(8, xxtea)
+            ErrorsData(shared_ptr<Xxtea> &xxtea, uint8_t *raw_data, uint16_t value_len) : DeviceData(8, xxtea)
             {
                 // unsigned short error;
                 // unsigned char padding[6];

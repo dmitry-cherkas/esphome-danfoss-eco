@@ -57,7 +57,7 @@ namespace esphome
             }
         }
 
-        uint8_t *encrypt(std::shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len)
+        uint8_t *encrypt(shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len)
         {
             uint8_t buffer[value_len], enc_buff[value_len];
             reverse_chunks(value, value_len, buffer);
@@ -70,7 +70,7 @@ namespace esphome
             return value;
         }
 
-        uint8_t *decrypt(std::shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len)
+        uint8_t *decrypt(shared_ptr<Xxtea> &xxtea, uint8_t *value, uint16_t value_len)
         {
             uint8_t buffer[value_len];
             reverse_chunks(value, value_len, buffer);

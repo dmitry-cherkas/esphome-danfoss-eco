@@ -17,6 +17,9 @@ namespace esphome
 {
   namespace danfoss_eco
   {
+    using namespace std;
+    using namespace climate;
+
     static uint8_t SECRET_KEY_LENGTH = 16;
 
     class Device : public MyComponent, public esphome::ble_client::BLEClientNode
@@ -28,10 +31,10 @@ namespace esphome
       void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) override;
 
       void set_secret_key(const char *);
-      void set_pin_code(const std::string &);
+      void set_pin_code(const string &);
 
     protected:
-      void control(const climate::ClimateCall &call) override;
+      void control(const ClimateCall &call) override;
 
       void connect();
       void disconnect();
@@ -41,15 +44,15 @@ namespace esphome
       void on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param);
       void on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param);
 
-      std::shared_ptr<Xxtea> xxtea{nullptr};
+      shared_ptr<Xxtea> xxtea{nullptr};
 
-      std::shared_ptr<WritableProperty> p_pin{nullptr};
-      std::shared_ptr<BatteryProperty> p_battery{nullptr};
-      std::shared_ptr<TemperatureProperty> p_temperature{nullptr};
-      std::shared_ptr<SettingsProperty> p_settings{nullptr};
-      std::shared_ptr<ErrorsProperty> p_errors{nullptr};
+      shared_ptr<WritableProperty> p_pin{nullptr};
+      shared_ptr<BatteryProperty> p_battery{nullptr};
+      shared_ptr<TemperatureProperty> p_temperature{nullptr};
+      shared_ptr<SettingsProperty> p_settings{nullptr};
+      shared_ptr<ErrorsProperty> p_errors{nullptr};
 
-      std::set<std::shared_ptr<DeviceProperty>> properties{nullptr};
+      set<shared_ptr<DeviceProperty>> properties{nullptr};
 
     private:
       uint8_t *secret_;

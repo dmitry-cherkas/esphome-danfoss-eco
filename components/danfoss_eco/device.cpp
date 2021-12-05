@@ -9,7 +9,7 @@ namespace esphome
     void Device::setup()
     {
       // Setup encryption key
-      this->xxtea = std::make_shared<Xxtea>(this->secret_, SECRET_KEY_LENGTH);
+      this->xxtea = make_shared<Xxtea>(this->secret_, SECRET_KEY_LENGTH);
       if (xxtea->status() != XXTEA_STATUS_SUCCESS)
       {
         ESP_LOGE(TAG, "xxtea_setup_key failed, status: %d", xxtea->status());
@@ -17,11 +17,11 @@ namespace esphome
         return;
       }
 
-      this->p_pin = std::make_shared<WritableProperty>(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_PIN);
-      this->p_battery = std::make_shared<BatteryProperty>(xxtea);
-      this->p_temperature = std::make_shared<TemperatureProperty>(xxtea);
-      this->p_settings = std::make_shared<SettingsProperty>(xxtea);
-      this->p_errors = std::make_shared<ErrorsProperty>(xxtea);
+      this->p_pin = make_shared<WritableProperty>(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_PIN);
+      this->p_battery = make_shared<BatteryProperty>(xxtea);
+      this->p_temperature = make_shared<TemperatureProperty>(xxtea);
+      this->p_settings = make_shared<SettingsProperty>(xxtea);
+      this->p_errors = make_shared<ErrorsProperty>(xxtea);
 
       this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings, this->p_errors};
 
@@ -37,7 +37,7 @@ namespace esphome
         this->status_clear_error();
       }
 
-      if (this->node_state != espbt::ClientState::ESTABLISHED)
+      if (this->node_state != ClientState::ESTABLISHED)
         return;
 
       Command *cmd = this->commands_.pop();
@@ -141,7 +141,7 @@ namespace esphome
           else
           {
             ESP_LOGD(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
-            this->node_state = espbt::ClientState::ESTABLISHED;
+            this->node_state = ClientState::ESTABLISHED;
           }
           break;
         }
@@ -180,8 +180,8 @@ namespace esphome
 
     void Device::on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param param)
     {
-      auto device_property = std::find_if(properties.begin(), properties.end(),
-                                          [&param](std::shared_ptr<DeviceProperty> p)
+      auto device_property = find_if(properties.begin(), properties.end(),
+                                          [&param](shared_ptr<DeviceProperty> p)
                                           { return p->handle == param.handle; });
 
       if (device_property != properties.end())
@@ -198,7 +198,7 @@ namespace esphome
 
     void Device::connect()
     {
-      if (this->node_state == espbt::ClientState::ESTABLISHED)
+      if (this->node_state == ClientState::ESTABLISHED)
       {
         return;
       }
@@ -210,16 +210,16 @@ namespace esphome
       }
       // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
       esp_ble_gap_stop_scanning();
-      this->parent()->set_state(espbt::ClientState::DISCOVERED); // this will cause ble_client to attempt connect() from its loop()
+      this->parent()->set_state(ClientState::DISCOVERED); // this will cause ble_client to attempt connect() from its loop()
     }
 
     void Device::disconnect()
     {
       this->parent()->set_enabled(false);
-      this->node_state = espbt::ClientState::IDLE;
+      this->node_state = ClientState::IDLE;
     }
 
-    void Device::set_pin_code(const std::string &str)
+    void Device::set_pin_code(const string &str)
     {
       if (str.length() > 0)
         this->pin_code_ = atoi((const char *)str.c_str());
@@ -230,7 +230,7 @@ namespace esphome
     {
       this->secret_ = parse_hex_str(str, 32);
 
-      std::string hex_str = hexencode(this->secret_, 16);
+      string hex_str = hexencode(this->secret_, 16);
       ESP_LOGD(TAG, "[%s] secret bytes: %s", this->parent()->address_str().c_str(), hex_str.c_str());
     }
 

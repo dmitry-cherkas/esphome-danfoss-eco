@@ -8,6 +8,7 @@ namespace esphome
 {
     namespace danfoss_eco
     {
+        using namespace std;
 
         enum class CommandType
         {
@@ -17,10 +18,10 @@ namespace esphome
 
         struct Command
         {
-            Command(CommandType t, std::shared_ptr<DeviceProperty> const &p) : type(t), property(p) {}
+            Command(CommandType t, shared_ptr<DeviceProperty> const &p) : type(t), property(p) {}
 
             CommandType type; // 0 - read, 1 - write
-            std::shared_ptr<DeviceProperty> property;
+            shared_ptr<DeviceProperty> property;
 
             bool execute(esphome::ble_client::BLEClient *client)
             {

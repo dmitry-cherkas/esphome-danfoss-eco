@@ -10,7 +10,7 @@ namespace esphome
 {
     namespace danfoss_eco
     {
-        bool DeviceProperty::init_handle(esphome::ble_client::BLEClient *client)
+        bool DeviceProperty::init_handle(BLEClient *client)
         {
             ESP_LOGD(TAG, "[%s] resolving handler for service=%s, characteristic=%s", client->address_str().c_str(), this->service_uuid.to_string().c_str(), this->characteristic_uuid.to_string().c_str());
             auto chr = client->get_characteristic(this->service_uuid, this->characteristic_uuid);
@@ -24,7 +24,7 @@ namespace esphome
             return true;
         }
 
-        bool DeviceProperty::read_request(esphome::ble_client::BLEClient *client)
+        bool DeviceProperty::read_request(BLEClient *client)
         {
             auto status = esp_ble_gattc_read_char(client->gattc_if,
                                                   client->conn_id,
@@ -36,7 +36,7 @@ namespace esphome
             return status == ESP_OK;
         }
 
-        bool WritableProperty::write_request(esphome::ble_client::BLEClient *client, uint8_t *data, uint16_t data_len)
+        bool WritableProperty::write_request(BLEClient *client, uint8_t *data, uint16_t data_len)
         {
             ESP_LOGD(TAG, "[%s] write_request: handle=%#04x, data=%s", client->address_str().c_str(), this->handle, hexencode(data, data_len).c_str());
 
@@ -53,7 +53,7 @@ namespace esphome
             return status == ESP_OK;
         }
 
-        bool WritableProperty::write_request(esphome::ble_client::BLEClient *client)
+        bool WritableProperty::write_request(BLEClient *client)
         {
             WritableData *writableData = static_cast<WritableData *>(this->data.get());
             uint8_t buff[this->data->length]{0};
