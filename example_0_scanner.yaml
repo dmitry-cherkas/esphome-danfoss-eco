@@ -1,0 +1,19 @@
+esphome:
+  name: etrv2wifi-scanner
+  platform: ESP32
+  board: esp32dev
+
+# Enable logging
+logger:
+  level: INFO
+  logs:
+    esp32_ble_tracker: WARN
+    ble_client: WARN
+    logger: NONE
+
+external_components:
+  - source: components
+
+sensor:
+  - platform: danfoss_eco_scanner
+    id: scanner
