@@ -3,6 +3,8 @@
 #include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/climate/climate.h"
 
+#include "esphome/core/preferences.h"
+
 #include "helpers.h"
 #include "command.h"
 #include "properties.h"
@@ -20,7 +22,7 @@ namespace esphome
     using namespace std;
     using namespace climate;
 
-    static uint8_t SECRET_KEY_LENGTH = 16;
+    const uint8_t SECRET_KEY_LENGTH = 16;
 
     class Device : public MyComponent, public esphome::ble_client::BLEClientNode
     {
@@ -55,6 +57,7 @@ namespace esphome
       set<shared_ptr<DeviceProperty>> properties{nullptr};
 
     private:
+      ESPPreferenceObject secret_pref_;
       uint8_t *secret_;
       uint32_t pin_code_ = 0;
 

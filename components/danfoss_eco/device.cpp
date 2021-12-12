@@ -8,6 +8,9 @@ namespace esphome
   {
     void Device::setup()
     {
+      uint32_t hash = fnv1_hash("danfoss_eco_state_" + this->parent()->address_str());
+      this->secret_pref_ = global_preferences->make_preference<uint8_t[SECRET_KEY_LENGTH]>(hash, true);
+
       // Setup encryption key
       this->xxtea = make_shared<Xxtea>(this->secret_, SECRET_KEY_LENGTH);
       if (xxtea->status() != XXTEA_STATUS_SUCCESS)
@@ -181,8 +184,8 @@ namespace esphome
     void Device::on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param param)
     {
       auto device_property = find_if(properties.begin(), properties.end(),
-                                          [&param](shared_ptr<DeviceProperty> p)
-                                          { return p->handle == param.handle; });
+                                     [&param](shared_ptr<DeviceProperty> p)
+                                     { return p->handle == param.handle; });
 
       if (device_property != properties.end())
         (*device_property)->update_state(this, param.value, param.value_len);
