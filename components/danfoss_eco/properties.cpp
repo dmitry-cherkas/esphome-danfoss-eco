@@ -145,7 +145,7 @@ namespace esphome
                 return true;
             }
 
-            ESP_LOGW(TAG, "[%s] Short press Danfoss Eco hardware button while pairing in order to allow reading the secret key", this->component_->get_name().c_str());
+            ESP_LOGW(TAG, "[%s] Danfoss Eco hardware button was not pressed, unable to read the secret key", this->component_->get_name().c_str());
             this->handle = INVALID_HANDLE;
             return false;
         }

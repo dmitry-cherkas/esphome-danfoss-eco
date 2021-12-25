@@ -55,6 +55,8 @@ namespace esphome
 
       if (this->xxtea->status() == XXTEA_STATUS_SUCCESS)
       {
+        ESP_LOGI(TAG, "[%s] requesting device state", this->get_name().c_str());
+
         this->commands_.push(new Command(CommandType::READ, this->p_battery));
         this->commands_.push(new Command(CommandType::READ, this->p_temperature));
         this->commands_.push(new Command(CommandType::READ, this->p_settings));
@@ -97,25 +99,25 @@ namespace esphome
         if (memcmp(param->connect.remote_bda, this->parent()->remote_bda, 6) != 0)
           return; // event does not belong to this client, exit gattc_event_handler
 
-        ESP_LOGI(TAG, "[%s] connect, conn_id=%d", this->get_name().c_str(), param->connect.conn_id);
+        ESP_LOGD(TAG, "[%s] connect, conn_id=%d", this->get_name().c_str(), param->connect.conn_id);
         break;
 
       case ESP_GATTC_OPEN_EVT:
         if (param->open.status == ESP_GATT_OK)
-          ESP_LOGD(TAG, "[%s] open, conn_id=%d", this->get_name().c_str(), param->open.conn_id);
+          ESP_LOGV(TAG, "[%s] open, conn_id=%d", this->get_name().c_str(), param->open.conn_id);
         else
           ESP_LOGW(TAG, "[%s] failed to open, conn_id=%d, status=%#04x", this->get_name().c_str(), param->open.conn_id, param->open.status);
         break;
 
       case ESP_GATTC_CLOSE_EVT:
         if (param->close.status == ESP_GATT_OK)
-          ESP_LOGD(TAG, "[%s] close, conn_id=%d, reason=%d", this->get_name().c_str(), param->close.conn_id, param->close.reason);
+          ESP_LOGV(TAG, "[%s] close, conn_id=%d, reason=%d", this->get_name().c_str(), param->close.conn_id, param->close.reason);
         else
           ESP_LOGW(TAG, "[%s] failed to close, conn_id=%d, status=%#04x", this->get_name().c_str(), param->close.conn_id, param->close.status);
         break;
 
       case ESP_GATTC_DISCONNECT_EVT:
-        ESP_LOGI(TAG, "[%s] disconnect, conn_id=%d, reason=%#04x", this->get_name().c_str(), param->disconnect.conn_id, (int)param->disconnect.reason);
+        ESP_LOGD(TAG, "[%s] disconnect, conn_id=%d, reason=%#04x", this->get_name().c_str(), param->disconnect.conn_id, (int)param->disconnect.reason);
         break;
 
       case ESP_GATTC_SEARCH_CMPL_EVT:
@@ -208,6 +210,9 @@ namespace esphome
       {
         return;
       }
+
+      if (this->xxtea->status() == XXTEA_STATUS_NOT_INITIALIZED)
+        ESP_LOGI(TAG, "[%s] Short press Danfoss Eco hardware button NOW in order to allow reading the secret key", this->get_name().c_str());
 
       if (!parent()->enabled)
       {
