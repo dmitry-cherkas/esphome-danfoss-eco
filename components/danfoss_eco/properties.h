@@ -40,9 +40,9 @@ namespace esphome
         public:
             unique_ptr<DeviceData> data{nullptr};
 
-            DeviceProperty(shared_ptr<Xxtea> &xxtea, ESPBTUUID s_uuid, ESPBTUUID c_uuid) : xxtea_(xxtea), service_uuid(s_uuid), characteristic_uuid(c_uuid) {}
+            DeviceProperty(shared_ptr<MyComponent> &component, shared_ptr<Xxtea> &xxtea, ESPBTUUID s_uuid, ESPBTUUID c_uuid) : component_(component), xxtea_(xxtea), service_uuid(s_uuid), characteristic_uuid(c_uuid) {}
 
-            virtual void update_state(MyComponent *component, uint8_t *value, uint16_t value_len){};
+            virtual void update_state(uint8_t *value, uint16_t value_len){};
 
             virtual bool init_handle(BLEClient *);
             bool read_request(BLEClient *client);
@@ -50,6 +50,7 @@ namespace esphome
             uint16_t handle;
 
         protected:
+            shared_ptr<MyComponent> component_{nullptr};
             shared_ptr<Xxtea> xxtea_{nullptr};
 
         private:
@@ -60,7 +61,7 @@ namespace esphome
         class WritableProperty : public DeviceProperty
         {
         public:
-            WritableProperty(shared_ptr<Xxtea> &xxtea, ESPBTUUID s_uuid, ESPBTUUID c_uuid) : DeviceProperty(xxtea, s_uuid, c_uuid) {}
+            WritableProperty(shared_ptr<MyComponent> &component, shared_ptr<Xxtea> &xxtea, ESPBTUUID s_uuid, ESPBTUUID c_uuid) : DeviceProperty(component, xxtea, s_uuid, c_uuid) {}
 
             bool write_request(BLEClient *client);
             bool write_request(BLEClient *client, uint8_t *data, uint16_t data_len);
@@ -69,36 +70,36 @@ namespace esphome
         class BatteryProperty : public DeviceProperty
         {
         public:
-            BatteryProperty(shared_ptr<Xxtea> &xxtea) : DeviceProperty(xxtea, SERVICE_BATTERY, CHARACTERISTIC_BATTERY) {}
-            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            BatteryProperty(shared_ptr<MyComponent> &component, shared_ptr<Xxtea> &xxtea) : DeviceProperty(component, xxtea, SERVICE_BATTERY, CHARACTERISTIC_BATTERY) {}
+            void update_state(uint8_t *value, uint16_t value_len) override;
         };
 
         class TemperatureProperty : public WritableProperty
         {
         public:
-            TemperatureProperty(shared_ptr<Xxtea> &xxtea) : WritableProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE) {}
-            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            TemperatureProperty(shared_ptr<MyComponent> &component, shared_ptr<Xxtea> &xxtea) : WritableProperty(component, xxtea, SERVICE_SETTINGS, CHARACTERISTIC_TEMPERATURE) {}
+            void update_state(uint8_t *value, uint16_t value_len) override;
         };
 
         class SettingsProperty : public WritableProperty
         {
         public:
-            SettingsProperty(shared_ptr<Xxtea> &xxtea) : WritableProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS) {}
-            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            SettingsProperty(shared_ptr<MyComponent> &component, shared_ptr<Xxtea> &xxtea) : WritableProperty(component, xxtea, SERVICE_SETTINGS, CHARACTERISTIC_SETTINGS) {}
+            void update_state(uint8_t *value, uint16_t value_len) override;
         };
 
         class ErrorsProperty : public DeviceProperty
         {
         public:
-            ErrorsProperty(shared_ptr<Xxtea> &xxtea) : DeviceProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_ERRORS) {}
-            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            ErrorsProperty(shared_ptr<MyComponent> &component, shared_ptr<Xxtea> &xxtea) : DeviceProperty(component, xxtea, SERVICE_SETTINGS, CHARACTERISTIC_ERRORS) {}
+            void update_state(uint8_t *value, uint16_t value_len) override;
         };
 
         class SecretKeyProperty : public DeviceProperty
         {
         public:
-            SecretKeyProperty(shared_ptr<Xxtea> &xxtea) : DeviceProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_SECRET_KEY) {}
-            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+            SecretKeyProperty(shared_ptr<MyComponent> &component, shared_ptr<Xxtea> &xxtea) : DeviceProperty(component, xxtea, SERVICE_SETTINGS, CHARACTERISTIC_SECRET_KEY) {}
+            void update_state(uint8_t *value, uint16_t value_len) override;
 
             bool init_handle(BLEClient *) override;
         };

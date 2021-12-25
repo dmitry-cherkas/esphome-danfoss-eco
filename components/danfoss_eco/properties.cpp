@@ -12,11 +12,11 @@ namespace esphome
     {
         bool DeviceProperty::init_handle(BLEClient *client)
         {
-            ESP_LOGD(TAG, "[%s] resolving handler for service=%s, characteristic=%s", client->address_str().c_str(), this->service_uuid.to_string().c_str(), this->characteristic_uuid.to_string().c_str());
+            ESP_LOGD(TAG, "[%s] resolving handler for service=%s, characteristic=%s", this->component_->get_name().c_str(), this->service_uuid.to_string().c_str(), this->characteristic_uuid.to_string().c_str());
             auto chr = client->get_characteristic(this->service_uuid, this->characteristic_uuid);
             if (chr == nullptr)
             {
-                ESP_LOGW(TAG, "[%s] characteristic uuid=%s not found", client->address_str().c_str(), this->characteristic_uuid.to_string().c_str());
+                ESP_LOGW(TAG, "[%s] characteristic uuid=%s not found", this->component_->get_name().c_str(), this->characteristic_uuid.to_string().c_str());
                 return false;
             }
 
@@ -31,14 +31,14 @@ namespace esphome
                                                   this->handle,
                                                   ESP_GATT_AUTH_REQ_NONE);
             if (status != ESP_OK)
-                ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, handle=%#04x, status=%01x", client->address_str().c_str(), this->handle, status);
+                ESP_LOGW(TAG, "[%s] esp_ble_gattc_read_char failed, handle=%#04x, status=%01x", this->component_->get_name().c_str(), this->handle, status);
 
             return status == ESP_OK;
         }
 
         bool WritableProperty::write_request(BLEClient *client, uint8_t *data, uint16_t data_len)
         {
-            ESP_LOGD(TAG, "[%s] write_request: handle=%#04x, data=%s", client->address_str().c_str(), this->handle, hexencode(data, data_len).c_str());
+            ESP_LOGD(TAG, "[%s] write_request: handle=%#04x, data=%s", this->component_->get_name().c_str(), this->handle, hexencode(data, data_len).c_str());
 
             auto status = esp_ble_gattc_write_char(client->gattc_if,
                                                    client->conn_id,
@@ -48,7 +48,7 @@ namespace esphome
                                                    ESP_GATT_WRITE_TYPE_RSP,
                                                    ESP_GATT_AUTH_REQ_NONE);
             if (status != ESP_OK)
-                ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, handle=%#04x, status=%01x", client->address_str().c_str(), this->handle, status);
+                ESP_LOGW(TAG, "[%s] esp_ble_gattc_write_char failed, handle=%#04x, status=%01x", this->component_->get_name().c_str(), this->handle, status);
 
             return status == ESP_OK;
         }
@@ -61,37 +61,37 @@ namespace esphome
             return this->write_request(client, buff, sizeof(buff));
         }
 
-        void BatteryProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void BatteryProperty::update_state(uint8_t *value, uint16_t value_len)
         {
             uint8_t battery_level = value[0];
-            ESP_LOGD(TAG, "[%s] battery level: %d %%", component->get_name().c_str(), battery_level);
-            if (component->battery_level() != nullptr)
-                component->battery_level()->publish_state(battery_level);
+            ESP_LOGD(TAG, "[%s] battery level: %d %%", this->component_->get_name().c_str(), battery_level);
+            if (this->component_->battery_level() != nullptr)
+                this->component_->battery_level()->publish_state(battery_level);
         }
 
-        void TemperatureProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void TemperatureProperty::update_state(uint8_t *value, uint16_t value_len)
         {
             auto t_data = new TemperatureData(this->xxtea_, value, value_len);
             this->data.reset(t_data);
 
-            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", component->get_name().c_str(), t_data->room_temperature, t_data->target_temperature);
-            if (component->temperature() != nullptr)
-                component->temperature()->publish_state(t_data->room_temperature);
+            ESP_LOGD(TAG, "[%s] Current room temperature: %2.1f°C, Set point temperature: %2.1f°C", this->component_->get_name().c_str(), t_data->room_temperature, t_data->target_temperature);
+            if (this->component_->temperature() != nullptr)
+                this->component_->temperature()->publish_state(t_data->room_temperature);
 
             // apply read configuration to the component
             // TODO component->action should consider "open window detection" feature of Danfoss Eco
-            component->action = (t_data->room_temperature > t_data->target_temperature) ? climate::ClimateAction::CLIMATE_ACTION_IDLE : climate::ClimateAction::CLIMATE_ACTION_HEATING;
-            component->target_temperature = t_data->target_temperature;
-            component->current_temperature = t_data->room_temperature;
-            component->publish_state();
+            this->component_->action = (t_data->room_temperature > t_data->target_temperature) ? climate::ClimateAction::CLIMATE_ACTION_IDLE : climate::ClimateAction::CLIMATE_ACTION_HEATING;
+            this->component_->target_temperature = t_data->target_temperature;
+            this->component_->current_temperature = t_data->room_temperature;
+            this->component_->publish_state();
         }
 
-        void SettingsProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void SettingsProperty::update_state(uint8_t *value, uint16_t value_len)
         {
             auto s_data = new SettingsData(this->xxtea_, value, value_len);
             this->data.reset(s_data);
 
-            const char *name = component->get_name().c_str();
+            const char *name = this->component_->get_name().c_str();
             ESP_LOGD(TAG, "[%s] adaptable_regulation: %d", name, s_data->get_adaptable_regulation());
             ESP_LOGD(TAG, "[%s] vertical_intallation: %d", name, s_data->get_vertical_intallation());
             ESP_LOGD(TAG, "[%s] display_flip: %d", name, s_data->get_display_flip());
@@ -107,18 +107,18 @@ namespace esphome
             ESP_LOGD(TAG, "[%s] vacation_to: %d", name, (int)s_data->vacation_to);
 
             // apply read configuration to the component
-            component->mode = s_data->device_mode;
-            component->set_visual_min_temperature_override(s_data->temperature_min);
-            component->set_visual_max_temperature_override(s_data->temperature_max);
-            component->publish_state();
+            this->component_->mode = s_data->device_mode;
+            this->component_->set_visual_min_temperature_override(s_data->temperature_min);
+            this->component_->set_visual_max_temperature_override(s_data->temperature_max);
+            this->component_->publish_state();
         }
 
-        void ErrorsProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void ErrorsProperty::update_state(uint8_t *value, uint16_t value_len)
         {
             auto e_data = new ErrorsData(this->xxtea_, value, value_len);
             this->data.reset(e_data);
 
-            const char *name = component->get_name().c_str();
+            const char *name = this->component_->get_name().c_str();
 
             ESP_LOGD(TAG, "[%s] E9_VALVE_DOES_NOT_CLOSE: %d", name, e_data->E9_VALVE_DOES_NOT_CLOSE);
             ESP_LOGD(TAG, "[%s] E10_INVALID_TIME: %d", name, e_data->E10_INVALID_TIME);
@@ -126,16 +126,16 @@ namespace esphome
             ESP_LOGD(TAG, "[%s] E15_VERY_LOW_BATTERY: %d", name, e_data->E15_VERY_LOW_BATTERY);
 
             // TODO: it would be great to add actual error code to binary_sensor state attributes, but I'm not sure how to achieve that
-            if (component->problems() != nullptr)
-                component->problems()->publish_state(e_data->E9_VALVE_DOES_NOT_CLOSE || e_data->E10_INVALID_TIME || e_data->E14_LOW_BATTERY || e_data->E15_VERY_LOW_BATTERY);
+            if (this->component_->problems() != nullptr)
+                this->component_->problems()->publish_state(e_data->E9_VALVE_DOES_NOT_CLOSE || e_data->E10_INVALID_TIME || e_data->E14_LOW_BATTERY || e_data->E15_VERY_LOW_BATTERY);
         }
 
-        void SecretKeyProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
+        void SecretKeyProperty::update_state(uint8_t *value, uint16_t value_len)
         {
             if (value_len != SECRET_KEY_LENGTH)
-                ESP_LOGE(TAG, "[%s] Unexpected secret_key length: %d", component->get_name().c_str(), value_len);
+                ESP_LOGE(TAG, "[%s] Unexpected secret_key length: %d", this->component_->get_name().c_str(), value_len);
 
-            component->set_secret_key(value, true);
+            this->component_->set_secret_key(value, true);
         }
 
         bool SecretKeyProperty::init_handle(BLEClient *client)
@@ -144,7 +144,7 @@ namespace esphome
                 return DeviceProperty::init_handle(client);
             else
             {
-                ESP_LOGD(TAG, "[%s] xxtea is initialized, will not request a read of secret_key", client->address_str().c_str());
+                ESP_LOGD(TAG, "[%s] xxtea is initialized, will not request a read of secret_key", this->component_->get_name().c_str());
                 return true;
             }
         }

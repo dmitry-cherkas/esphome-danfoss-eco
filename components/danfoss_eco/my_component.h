@@ -16,18 +16,10 @@ namespace esphome
         using namespace esphome::sensor;
         using namespace esphome::binary_sensor;
 
-        class MyComponent : public Climate, public PollingComponent
+        class MyComponent : public Climate, public PollingComponent, public enable_shared_from_this<MyComponent>
         {
         public:
             float get_setup_priority() const override { return setup_priority::DATA; }
-
-            void dump_config() override
-            {
-                LOG_CLIMATE("", "Danfoss Eco eTRV", this);
-                LOG_SENSOR("", "Battery Level", this->battery_level_);
-                LOG_SENSOR("", "Room Temperature", this->temperature_);
-                LOG_BINARY_SENSOR("", "Problems", this->problems_);
-            }
 
             ClimateTraits traits() override
             {
