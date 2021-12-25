@@ -12,6 +12,7 @@ namespace esphome
 
         const char *const TAG = "danfoss_eco";
 
+        void encode_hex(const uint8_t *data, size_t len, char *buff);
         void parse_hex_str(const char *data, size_t str_len, uint8_t *buff);
         uint32_t parse_int(uint8_t *data, int start_pos);
         uint16_t parse_short(uint8_t *data, int start_pos);

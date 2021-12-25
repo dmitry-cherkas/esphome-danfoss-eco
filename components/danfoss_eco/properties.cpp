@@ -12,7 +12,7 @@ namespace esphome
     {
         bool DeviceProperty::init_handle(BLEClient *client)
         {
-            ESP_LOGD(TAG, "[%s] resolving handler for service=%s, characteristic=%s", this->component_->get_name().c_str(), this->service_uuid.to_string().c_str(), this->characteristic_uuid.to_string().c_str());
+            ESP_LOGV(TAG, "[%s] resolving handler for service=%s, characteristic=%s", this->component_->get_name().c_str(), this->service_uuid.to_string().c_str(), this->characteristic_uuid.to_string().c_str());
             auto chr = client->get_characteristic(this->service_uuid, this->characteristic_uuid);
             if (chr == nullptr)
             {
@@ -130,23 +130,40 @@ namespace esphome
                 this->component_->problems()->publish_state(e_data->E9_VALVE_DOES_NOT_CLOSE || e_data->E10_INVALID_TIME || e_data->E14_LOW_BATTERY || e_data->E15_VERY_LOW_BATTERY);
         }
 
-        void SecretKeyProperty::update_state(uint8_t *value, uint16_t value_len)
-        {
-            if (value_len != SECRET_KEY_LENGTH)
-                ESP_LOGE(TAG, "[%s] Unexpected secret_key length: %d", this->component_->get_name().c_str(), value_len);
-
-            this->component_->set_secret_key(value, true);
-        }
-
         bool SecretKeyProperty::init_handle(BLEClient *client)
         {
-            if (this->xxtea_->status() == XXTEA_STATUS_NOT_INITIALIZED)
-                return DeviceProperty::init_handle(client);
-            else
+            if (this->xxtea_->status() != XXTEA_STATUS_NOT_INITIALIZED)
             {
                 ESP_LOGD(TAG, "[%s] xxtea is initialized, will not request a read of secret_key", this->component_->get_name().c_str());
                 return true;
             }
+
+            auto chr = client->get_characteristic(this->service_uuid, this->characteristic_uuid);
+            if (chr != nullptr)
+            {
+                this->handle = chr->handle;
+                return true;
+            }
+
+            ESP_LOGW(TAG, "[%s] Short press Danfoss Eco hardware button while pairing in order to allow reading the secret key", this->component_->get_name().c_str());
+            this->handle = INVALID_HANDLE;
+            return false;
+        }
+
+        void SecretKeyProperty::update_state(uint8_t *value, uint16_t value_len)
+        {
+            if (value_len != SECRET_KEY_LENGTH)
+            {
+                ESP_LOGE(TAG, "[%s] Unexpected secret_key length: %d", this->component_->get_name().c_str(), value_len);
+                return;
+            }
+
+            char key_str[SECRET_KEY_LENGTH * 2 + 1];
+            encode_hex(value, value_len, key_str);
+
+            ESP_LOGW(TAG, "[%s] Consider adding below line to your danfoss_eco config:", this->component_->get_name().c_str());
+            ESP_LOGW(TAG, "[%s] secret_key: %s", this->component_->get_name().c_str(), key_str);
+            this->component_->set_secret_key(value, true);
         }
 
     } // namespace danfoss_eco

@@ -8,6 +8,13 @@ namespace esphome
 {
     namespace danfoss_eco
     {
+
+        void encode_hex(const uint8_t *data, size_t len, char *buff)
+        {
+            for (size_t i = 0; i < len; i++)
+                sprintf(buff + (i * 2), "%02x", data[i]);
+        }
+
         void parse_hex_str(const char *data, size_t str_len, uint8_t *buff)
         {
             size_t len = str_len / 2;

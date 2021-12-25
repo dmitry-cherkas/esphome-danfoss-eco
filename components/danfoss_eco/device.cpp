@@ -195,7 +195,7 @@ namespace esphome
       this->node_state = ClientState::ESTABLISHED;
 
       // after PIN is written, we might need to read the secret_key from the device
-      if (this->xxtea->status() == XXTEA_STATUS_NOT_INITIALIZED)
+      if (this->xxtea->status() == XXTEA_STATUS_NOT_INITIALIZED && this->p_secret_key->handle != INVALID_HANDLE)
       {
         ESP_LOGD(TAG, "[%s] attempting to read the device secret_key", this->get_name().c_str());
         this->commands_.push(new Command(CommandType::READ, this->p_secret_key));

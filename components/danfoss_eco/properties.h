@@ -24,6 +24,8 @@ namespace esphome
         static auto SERVICE_BATTERY = ESPBTUUID::from_uint32(0x180F);
         static auto CHARACTERISTIC_BATTERY = ESPBTUUID::from_uint32(0x2A19); // 0x10
 
+        const uint16_t INVALID_HANDLE = -1;
+        
         const uint8_t SECRET_KEY_LENGTH = 16;
         struct SecretKeyValue
         {
@@ -53,7 +55,6 @@ namespace esphome
             shared_ptr<MyComponent> component_{nullptr};
             shared_ptr<Xxtea> xxtea_{nullptr};
 
-        private:
             ESPBTUUID service_uuid;
             ESPBTUUID characteristic_uuid;
         };
