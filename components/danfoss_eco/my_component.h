@@ -50,6 +50,8 @@ namespace esphome
             Sensor *temperature() { return this->temperature_; }
             BinarySensor *problems() { return this->problems_; }
 
+            virtual void set_secret_key(uint8_t *, bool) = 0;
+
         protected:
             Sensor *battery_level_{nullptr};
             Sensor *temperature_{nullptr};

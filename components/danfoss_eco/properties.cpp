@@ -130,6 +130,25 @@ namespace esphome
                 component->problems()->publish_state(e_data->E9_VALVE_DOES_NOT_CLOSE || e_data->E10_INVALID_TIME || e_data->E14_LOW_BATTERY || e_data->E15_VERY_LOW_BATTERY);
         }
 
+        void SecretKeyProperty::update_state(MyComponent *component, uint8_t *value, uint16_t value_len)
+        {
+            if (value_len != SECRET_KEY_LENGTH)
+                ESP_LOGE(TAG, "[%s] Unexpected secret_key length: %d", component->get_name().c_str(), value_len);
+
+            component->set_secret_key(value, true);
+        }
+
+        bool SecretKeyProperty::init_handle(BLEClient *client)
+        {
+            if (this->xxtea_->status() == XXTEA_STATUS_NOT_INITIALIZED)
+                return DeviceProperty::init_handle(client);
+            else
+            {
+                ESP_LOGD(TAG, "[%s] xxtea is initialized, will not request a read of secret_key", client->address_str().c_str());
+                return true;
+            }
+        }
+
     } // namespace danfoss_eco
 } // namespace esphome
 

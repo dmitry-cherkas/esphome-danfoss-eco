@@ -19,9 +19,21 @@ namespace esphome
         static auto CHARACTERISTIC_SETTINGS = ESPBTUUID::from_raw("10020003-2749-0001-0000-00805f9b042f");    // 0x2a
         static auto CHARACTERISTIC_TEMPERATURE = ESPBTUUID::from_raw("10020005-2749-0001-0000-00805f9b042f"); // 0x2d
         static auto CHARACTERISTIC_ERRORS = ESPBTUUID::from_raw("10020009-2749-0001-0000-00805f9b042f");      // 0x39
+        static auto CHARACTERISTIC_SECRET_KEY = ESPBTUUID::from_raw("1002000b-2749-0001-0000-00805f9b042f");  // 0x3f
 
         static auto SERVICE_BATTERY = ESPBTUUID::from_uint32(0x180F);
         static auto CHARACTERISTIC_BATTERY = ESPBTUUID::from_uint32(0x2A19); // 0x10
+
+        const uint8_t SECRET_KEY_LENGTH = 16;
+        struct SecretKeyValue
+        {
+            SecretKeyValue() {}
+            SecretKeyValue(uint8_t *val)
+            {
+                memcpy(this->value, (const char *)val, SECRET_KEY_LENGTH);
+            }
+            uint8_t value[SECRET_KEY_LENGTH];
+        };
 
         class DeviceProperty
         {
@@ -32,7 +44,7 @@ namespace esphome
 
             virtual void update_state(MyComponent *component, uint8_t *value, uint16_t value_len){};
 
-            bool init_handle(BLEClient *);
+            virtual bool init_handle(BLEClient *);
             bool read_request(BLEClient *client);
 
             uint16_t handle;
@@ -80,6 +92,15 @@ namespace esphome
         public:
             ErrorsProperty(shared_ptr<Xxtea> &xxtea) : DeviceProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_ERRORS) {}
             void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+        };
+
+        class SecretKeyProperty : public DeviceProperty
+        {
+        public:
+            SecretKeyProperty(shared_ptr<Xxtea> &xxtea) : DeviceProperty(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_SECRET_KEY) {}
+            void update_state(MyComponent *component, uint8_t *value, uint16_t value_len) override;
+
+            bool init_handle(BLEClient *) override;
         };
 
     } // namespace danfoss_eco

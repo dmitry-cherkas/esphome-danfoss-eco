@@ -53,7 +53,7 @@ CONFIG_SCHEMA = (
     climate.CLIMATE_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(DanfossEco),
-            cv.Required(CONF_SECRET_KEY): validate_secret,
+            cv.Optional(CONF_SECRET_KEY): validate_secret,
             cv.Optional(CONF_PIN_CODE): validate_pin,
             cv.Optional(CONF_BATTERY_LEVEL): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
@@ -85,7 +85,7 @@ async def to_code(config):
     await climate.register_climate(var, config)
     await ble_client.register_ble_node(var, config)
     
-    cg.add(var.set_secret_key(config[CONF_SECRET_KEY]))
+    cg.add(var.set_secret_key(config.get(CONF_SECRET_KEY, "")))
     cg.add(var.set_pin_code(config.get(CONF_PIN_CODE, "")))
     
     if CONF_BATTERY_LEVEL in config:

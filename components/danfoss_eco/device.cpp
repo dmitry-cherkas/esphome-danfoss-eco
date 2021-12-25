@@ -8,26 +8,14 @@ namespace esphome
   {
     void Device::setup()
     {
-      uint32_t hash = fnv1_hash("danfoss_eco_state_" + this->parent()->address_str());
-      this->secret_pref_ = global_preferences->make_preference<uint8_t[SECRET_KEY_LENGTH]>(hash, true);
-
-      // Setup encryption key
-      this->xxtea = make_shared<Xxtea>(this->secret_, SECRET_KEY_LENGTH);
-      if (xxtea->status() != XXTEA_STATUS_SUCCESS)
-      {
-        ESP_LOGE(TAG, "xxtea_setup_key failed, status: %d", xxtea->status());
-        this->mark_failed();
-        return;
-      }
-
       this->p_pin = make_shared<WritableProperty>(xxtea, SERVICE_SETTINGS, CHARACTERISTIC_PIN);
       this->p_battery = make_shared<BatteryProperty>(xxtea);
       this->p_temperature = make_shared<TemperatureProperty>(xxtea);
       this->p_settings = make_shared<SettingsProperty>(xxtea);
       this->p_errors = make_shared<ErrorsProperty>(xxtea);
+      this->p_secret_key = make_shared<SecretKeyProperty>(xxtea);
 
-      this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings, this->p_errors};
-
+      this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings, this->p_errors, this->p_secret_key};
       // pretend, we have already discovered the device
       copy_address(this->parent()->address, this->parent()->remote_bda);
     }
@@ -63,10 +51,13 @@ namespace esphome
     {
       this->connect();
 
-      this->commands_.push(new Command(CommandType::READ, this->p_battery));
-      this->commands_.push(new Command(CommandType::READ, this->p_temperature));
-      this->commands_.push(new Command(CommandType::READ, this->p_settings));
-      this->commands_.push(new Command(CommandType::READ, this->p_errors));
+      if (this->xxtea->status() == XXTEA_STATUS_SUCCESS)
+      {
+        this->commands_.push(new Command(CommandType::READ, this->p_battery));
+        this->commands_.push(new Command(CommandType::READ, this->p_temperature));
+        this->commands_.push(new Command(CommandType::READ, this->p_settings));
+        this->commands_.push(new Command(CommandType::READ, this->p_errors));
+      }
     }
 
     void Device::control(const ClimateCall &call)
@@ -134,34 +125,13 @@ namespace esphome
 
       case ESP_GATTC_WRITE_CHAR_EVT:
         if (param->write.handle == this->p_pin->handle)
-        {
-          if (param->write.status != ESP_GATT_OK)
-          {
-            ESP_LOGE(TAG, "[%s] pin FAILED, status=%#04x", this->parent()->address_str().c_str(), param->write.status);
-            this->disconnect();
-            this->mark_failed();
-          }
-          else
-          {
-            ESP_LOGD(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
-            this->node_state = ClientState::ESTABLISHED;
-          }
-          break;
-        }
-
-        this->request_counter_--;
-        if (param->write.status != ESP_GATT_OK)
-          ESP_LOGW(TAG, "[%s] failed to write characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->write.handle, param->write.status);
-        else // write request ACK
+          this->on_write_pin(param->write);
+        else
           this->on_write(param->write);
         break;
 
       case ESP_GATTC_READ_CHAR_EVT:
-        this->request_counter_--;
-        if (param->read.status != ESP_GATT_OK)
-          ESP_LOGW(TAG, "[%s] failed to read characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param->read.handle, param->read.status);
-        else
-          this->on_read(param->read);
+        this->on_read(param->read);
         break;
 
       default:
@@ -183,6 +153,13 @@ namespace esphome
 
     void Device::on_read(esp_ble_gattc_cb_param_t::gattc_read_char_evt_param param)
     {
+      this->request_counter_--;
+      if (param.status != ESP_GATT_OK)
+      {
+        ESP_LOGW(TAG, "[%s] failed to read characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param.handle, param.status);
+        return;
+      }
+
       auto device_property = find_if(properties.begin(), properties.end(),
                                      [&param](shared_ptr<DeviceProperty> p)
                                      { return p->handle == param.handle; });
@@ -195,8 +172,32 @@ namespace esphome
 
     void Device::on_write(esp_ble_gattc_cb_param_t::gattc_write_evt_param param)
     {
-      if (param.handle != this->p_pin->handle)
+      this->request_counter_--;
+      if (param.status != ESP_GATT_OK)
+        ESP_LOGW(TAG, "[%s] failed to write characteristic: handle=%#04x, status=%#04x", this->parent()->address_str().c_str(), param.handle, param.status);
+      else
         update();
+    }
+
+    void Device::on_write_pin(esp_ble_gattc_cb_param_t::gattc_write_evt_param param)
+    {
+      if (param.status != ESP_GATT_OK)
+      {
+        ESP_LOGE(TAG, "[%s] pin FAILED, status=%#04x", this->parent()->address_str().c_str(), param.status);
+        this->disconnect();
+        this->mark_failed();
+        return;
+      }
+
+      ESP_LOGD(TAG, "[%s] pin OK", this->parent()->address_str().c_str());
+      this->node_state = ClientState::ESTABLISHED;
+
+      // after PIN is written, we might need to read the secret_key from the device
+      if (this->xxtea->status() == XXTEA_STATUS_NOT_INITIALIZED)
+      {
+        ESP_LOGD(TAG, "[%s] attempting to read the device secret_key", this->parent()->address_str().c_str());
+        this->commands_.push(new Command(CommandType::READ, this->p_secret_key));
+      }
     }
 
     void Device::connect()
@@ -226,15 +227,54 @@ namespace esphome
     {
       if (str.length() > 0)
         this->pin_code_ = atoi((const char *)str.c_str());
-      ESP_LOGD(TAG, "[%s] PIN: %04d", this->parent()->address_str().c_str(), this->pin_code_);
+      
+      ESP_LOGD(TAG, "[%s] PIN: %04d", this->get_name().c_str(), this->pin_code_);
     }
 
-    void Device::set_secret_key(const char *str)
+    void Device::set_secret_key(const string &str)
     {
-      this->secret_ = parse_hex_str(str, 32);
+      // initialize the preference object
+      uint32_t hash = fnv1_hash("danfoss_eco_secret__" + this->get_name());
+      this->secret_pref_ = global_preferences->make_preference<SecretKeyValue>(hash, true);
 
-      string hex_str = hexencode(this->secret_, 16);
-      ESP_LOGD(TAG, "[%s] secret bytes: %s", this->parent()->address_str().c_str(), hex_str.c_str());
+      if (str.length() > 0)
+      {
+        uint8_t buff[SECRET_KEY_LENGTH];
+        ESP_LOGD(TAG, "[%s] secret_key was passed via config", this->get_name().c_str());
+        parse_hex_str(str.c_str(), 32, buff);
+        this->set_secret_key(buff, false);
+      }
+      else
+      {
+        auto key_buff = SecretKeyValue();
+        if (this->secret_pref_.load(&key_buff))
+        {
+          // use persisted secret value
+          ESP_LOGD(TAG, "[%s] secret_key was loaded from flash", this->get_name().c_str());
+          this->set_secret_key(key_buff.value, false);
+        }
+      }
+    }
+
+    void Device::set_secret_key(uint8_t *key, bool persist)
+    {
+      ESP_LOGD(TAG, "[%s] secret_key bytes: %s", this->get_name().c_str(), hexencode(key, SECRET_KEY_LENGTH).c_str());
+
+      int status = this->xxtea->set_key(key, SECRET_KEY_LENGTH);
+      if (status != XXTEA_STATUS_SUCCESS)
+      {
+        ESP_LOGE(TAG, "xxtea initialization failed, status: %d", status);
+        this->mark_failed();
+      }
+      else if (persist)
+      {
+        // if xxtea was initialized successfully and secret_key should be persisted
+        auto key_buff = SecretKeyValue(key);
+        this->secret_pref_.save(&key_buff);
+        global_preferences->sync();
+        
+        ESP_LOGD(TAG, "[%s] secret_key was saved to flash", this->parent()->address_str().c_str());
+      }
     }
 
   } // namespace danfoss_eco
