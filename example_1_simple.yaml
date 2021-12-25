@@ -27,4 +27,6 @@ climate:
       name: "My Room eTRV Battery Level"
     temperature:
       name: "My Room eTRV Temperature"
+    problems:
+      name: "My Room eTRV Problems"
     update_interval: 30min
