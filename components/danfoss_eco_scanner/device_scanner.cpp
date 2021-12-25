@@ -28,7 +28,7 @@ namespace esphome
 
             uint8_t flags = (uint8_t)name.c_str()[0];
             if ((flags & 0x4) >> 2)
-                ESP_LOGI(TAG, "Ready to read the secret key"); // TODO implement reading the secret key
+                ESP_LOGI(TAG, "Ready to read the secret key");
 
             return true;
         }

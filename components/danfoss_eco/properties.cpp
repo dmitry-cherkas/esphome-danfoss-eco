@@ -161,8 +161,8 @@ namespace esphome
             char key_str[SECRET_KEY_LENGTH * 2 + 1];
             encode_hex(value, value_len, key_str);
 
-            ESP_LOGW(TAG, "[%s] Consider adding below line to your danfoss_eco config:", this->component_->get_name().c_str());
-            ESP_LOGW(TAG, "[%s] secret_key: %s", this->component_->get_name().c_str(), key_str);
+            ESP_LOGI(TAG, "[%s] Consider adding below line to your danfoss_eco config:", this->component_->get_name().c_str());
+            ESP_LOGI(TAG, "[%s] secret_key: %s", this->component_->get_name().c_str(), key_str);
             this->component_->set_secret_key(value, true);
         }
 

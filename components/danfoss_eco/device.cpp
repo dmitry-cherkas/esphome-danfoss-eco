@@ -280,7 +280,7 @@ namespace esphome
         this->secret_pref_.save(&key_buff);
         global_preferences->sync();
 
-        ESP_LOGD(TAG, "[%s] secret_key was saved to flash", this->get_name().c_str());
+        ESP_LOGI(TAG, "[%s] secret_key was saved to flash", this->get_name().c_str());
       }
     }
 
