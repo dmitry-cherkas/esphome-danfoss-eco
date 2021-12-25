@@ -12,7 +12,7 @@ logger:
     logger: NONE
 
 external_components:
-  - source: components
+  - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.1.0
 
 sensor:
   - platform: danfoss_eco_scanner

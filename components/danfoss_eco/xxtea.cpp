@@ -1,6 +1,42 @@
 #include "xxtea.h"
 #include <xxtea_core.h>
 
+int Xxtea::set_key(uint8_t *key, size_t len)
+{
+    this->status_ = XXTEA_STATUS_GENERAL_ERROR;
+    size_t osz;
+
+    do
+    {
+        // Parameter Check
+        if (key == NULL || len <= 0 || len > MAX_XXTEA_KEY8)
+        {
+            this->status_ = XXTEA_STATUS_PARAMETER_ERROR;
+            break;
+        }
+
+        osz = UINT32CALCBYTE(len);
+
+        // Check for Size Errors
+        if (osz > MAX_XXTEA_KEY32)
+        {
+            this->status_ = XXTEA_STATUS_SIZE_ERROR;
+            break;
+        }
+
+        // Clear the Key
+        memset((void *)this->xxtea_key, 0, MAX_XXTEA_KEY8);
+
+        // Copy the Key from Buffer
+        memcpy((void *)this->xxtea_key, (const void *)key, len);
+
+        // We have Success
+        this->status_ = XXTEA_STATUS_SUCCESS;
+    } while (0);
+
+    return this->status_;
+}
+
 int Xxtea::encrypt(uint8_t *data, size_t len, uint8_t *buf, size_t *maxlen)
 {
     int ret = XXTEA_STATUS_GENERAL_ERROR;

@@ -8,14 +8,18 @@ namespace esphome
 {
     namespace danfoss_eco
     {
-        uint8_t *parse_hex_str(const char *data, size_t str_len)
+
+        void encode_hex(const uint8_t *data, size_t len, char *buff)
+        {
+            for (size_t i = 0; i < len; i++)
+                sprintf(buff + (i * 2), "%02x", data[i]);
+        }
+
+        void parse_hex_str(const char *data, size_t str_len, uint8_t *buff)
         {
             size_t len = str_len / 2;
-            uint8_t *buff = (uint8_t *)malloc(sizeof(uint8_t) * len);
             for (size_t i = 0; i < len; i++)
                 buff[i] = (parse_hex(data[i * 2]).value() << 4) | parse_hex(data[i * 2 + 1]).value();
-
-            return buff;
         }
 
         uint32_t parse_int(uint8_t *data, int start_pos)
@@ -45,14 +49,14 @@ namespace esphome
             data ^= (-value ^ data) & (1UL << pos);
         }
 
-        void reverse_chunks(uint8_t *data, int len, uint8_t *reversed_buf)
+        void reverse_chunks(uint8_t *data, int len, uint8_t *reversed_buff)
         {
             for (int i = 0; i < len; i += 4)
             {
                 int l = MIN(4, len - i); // limit for a chunk, 4 or what's left
                 for (int j = 0; j < l; j++)
                 {
-                    reversed_buf[i + j] = data[i + (l - 1 - j)];
+                    reversed_buff[i + j] = data[i + (l - 1 - j)];
                 }
             }
         }
