@@ -15,6 +15,18 @@ namespace esphome
                 sprintf(buff + (i * 2), "%02x", data[i]);
         }
 
+        optional<int> parse_hex(const char chr)
+        {
+            int out = chr;
+            if (out >= '0' && out <= '9')
+                return (out - '0');
+            if (out >= 'A' && out <= 'F')
+                return (10 + (out - 'A'));
+            if (out >= 'a' && out <= 'f')
+                return (10 + (out - 'a'));
+            return {};
+        }
+
         void parse_hex_str(const char *data, size_t str_len, uint8_t *buff)
         {
             size_t len = str_len / 2;
