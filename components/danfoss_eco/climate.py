@@ -71,7 +71,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_PROBLEMS): binary_sensor.BINARY_SENSOR_SCHEMA.extend({
                 cv.Optional(CONF_NAME): cv.string,
                 cv.Optional(CONF_ENTITY_CATEGORY, default=ENTITY_CATEGORY_DIAGNOSTIC): cv.entity_category,
-                cv.Optional(CONF_DEVICE_CLASS, default=DEVICE_CLASS_PROBLEM): binary_sensor.device_class
+                cv.Optional(CONF_DEVICE_CLASS, default=DEVICE_CLASS_PROBLEM): binary_sensor.validate_device_class
             })
         }
     )
