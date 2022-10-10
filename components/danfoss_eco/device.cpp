@@ -265,7 +265,7 @@ namespace esphome
 
     void Device::set_secret_key(uint8_t *key, bool persist)
     {
-      ESP_LOGD(TAG, "[%s] secret_key bytes: %s", this->get_name().c_str(), hexencode(key, SECRET_KEY_LENGTH).c_str());
+      ESP_LOGD(TAG, "[%s] secret_key bytes: %s", this->get_name().c_str(), format_hex_pretty(key, SECRET_KEY_LENGTH).c_str());
 
       int status = this->xxtea->set_key(key, SECRET_KEY_LENGTH);
       if (status != XXTEA_STATUS_SUCCESS)
