@@ -38,7 +38,7 @@ namespace esphome
 
         bool WritableProperty::write_request(BLEClient *client, uint8_t *data, uint16_t data_len)
         {
-            ESP_LOGD(TAG, "[%s] write_request: handle=%#04x, data=%s", this->component_->get_name().c_str(), this->handle, hexencode(data, data_len).c_str());
+            ESP_LOGD(TAG, "[%s] write_request: handle=%#04x, data=%s", this->component_->get_name().c_str(), this->handle, format_hex_pretty(data, data_len).c_str());
 
             auto status = esp_ble_gattc_write_char(client->get_gattc_if(),
                                                    client->get_conn_id(),
