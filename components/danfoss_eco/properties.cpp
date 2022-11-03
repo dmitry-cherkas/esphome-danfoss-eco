@@ -26,8 +26,8 @@ namespace esphome
 
         bool DeviceProperty::read_request(BLEClient *client)
         {
-            auto status = esp_ble_gattc_read_char(client->gattc_if,
-                                                  client->conn_id,
+            auto status = esp_ble_gattc_read_char(client->get_gattc_if,
+                                                  client->get_conn_id,
                                                   this->handle,
                                                   ESP_GATT_AUTH_REQ_NONE);
             if (status != ESP_OK)
