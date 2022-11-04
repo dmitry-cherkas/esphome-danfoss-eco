@@ -19,7 +19,7 @@ namespace esphome
 
       this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings, this->p_errors, this->p_secret_key};
       // pretend, we have already discovered the device
-      copy_address(this->parent()->get_address, this->parent()->get_remote_bda());
+      copy_address(this->parent()->get_address(), this->parent()->get_remote_bda());
     }
 
     void Device::loop()
