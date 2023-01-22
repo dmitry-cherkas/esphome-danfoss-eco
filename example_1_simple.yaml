@@ -11,7 +11,7 @@ wifi:
   password: "my-password"
 
 external_components:
-  - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.1.2
+  - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.1.3
 
 ble_client:
   - mac_address: 00:04:2f:xx:xx:xx
