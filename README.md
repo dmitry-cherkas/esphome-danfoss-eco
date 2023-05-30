@@ -25,6 +25,8 @@ esphome:
   name: etrv2wifi-scanner
   platform: ESP32
   board: esp32dev
+  libraries:
+    - xxtea-iot-crypt@2.0.1
 
 logger:
   level: INFO
