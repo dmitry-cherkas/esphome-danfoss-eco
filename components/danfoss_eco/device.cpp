@@ -20,6 +20,7 @@ namespace esphome
       this->properties = {this->p_pin, this->p_battery, this->p_temperature, this->p_settings, this->p_errors, this->p_secret_key};
       // pretend, we have already discovered the device
       copy_address(this->parent()->get_address(), this->parent()->get_remote_bda());
+      this->parent()->set_state(ClientState::INIT);
     }
 
     void Device::loop()
@@ -206,7 +207,7 @@ namespace esphome
 
     void Device::connect()
     {
-      if (this->node_state == ClientState::ESTABLISHED)
+      if (this->node_state == ClientState::INIT || this->node_state == ClientState::ESTABLISHED)
       {
         return;
       }
@@ -221,7 +222,7 @@ namespace esphome
       }
       // gap scanning interferes with connection attempts, which results in esp_gatt_status_t::ESP_GATT_ERROR (0x85)
       esp_ble_gap_stop_scanning();
-      this->parent()->set_state(ClientState::DISCOVERED); // this will cause ble_client to attempt connect() from its loop()
+      this->parent()->set_state(ClientState::READY_TO_CONNECT); // this will cause ble_client to attempt connect() from its loop()
     }
 
     void Device::disconnect()
