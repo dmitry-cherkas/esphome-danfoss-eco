@@ -30,7 +30,7 @@ esphome:
 
 logger:
   level: INFO
-
+1.1.4
 external_components:
   - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.1.3
 
@@ -44,7 +44,7 @@ When the scanner is running, press the hardware button on your Danfoss Eco in or
 ```
 
 Once the MAC Adress is known, esphome component can be configured as follows:
-```yaml
+```yaml1.1.4
 external_components:
   - source: github://dmitry-cherkas/esphome-danfoss-eco@v1.1.3
 ble_client:
