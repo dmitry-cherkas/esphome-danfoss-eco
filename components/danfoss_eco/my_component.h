@@ -19,6 +19,12 @@ namespace esphome
         class MyComponent : public Climate, public PollingComponent, public enable_shared_from_this<MyComponent>
         {
         public:
+            MyComponent()
+            {
+                // TODO: remove this assignment after this unitialized variable bug is fixed in esphome
+                Climate::target_temperature = NAN;
+            }
+
             float get_setup_priority() const override { return setup_priority::DATA; }
 
             ClimateTraits traits() override
